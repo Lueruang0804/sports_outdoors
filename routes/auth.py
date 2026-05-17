@@ -30,12 +30,23 @@ def _mail_fail_open():
 
 def _email_send_failed_message():
     from app import app
-    from email_delivery import resend_configured
+    from email_delivery import last_send_error, resend_configured
 
     if os.environ.get('RENDER', '').strip() and not resend_configured(app):
         return (
-            'Could not send email from this server. On Render, add RESEND_API_KEY in '
-            'environment variables (free at resend.com) — Gmail SMTP is blocked there.'
+            'Email is not configured on Render yet. In Render Dashboard → sports-outdoors → '
+            'Environment, add RESEND_API_KEY (from resend.com), save, then Manual Deploy. '
+            'Gmail SMTP does not work on Render.'
+        )
+    if last_send_error and 'verify a domain' in last_send_error.lower():
+        return (
+            'Email could not be sent to this address. On Resend free tier, verify a domain at '
+            'resend.com/domains, or use the email tied to your Resend account for testing.'
+        )
+    if last_send_error and 'only send testing emails' in last_send_error.lower():
+        return (
+            'This email address cannot receive OTP yet. Verify a domain on resend.com/domains, '
+            'or register using the same Gmail as your Resend account.'
         )
     return 'Could not send email. Please try again later or contact support.'
 

@@ -89,7 +89,18 @@ app.register_blueprint(admin_ad_bp)
 
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'ok'}), 200
+    from email_delivery import resend_configured, smtp_configured
+
+    on_render = bool(os.environ.get('RENDER', '').strip())
+    return jsonify({
+        'status': 'ok',
+        'on_render': on_render,
+        'resend_configured': resend_configured(app),
+        'smtp_configured': smtp_configured(app),
+        'email_ready': resend_configured(app) if on_render else (
+            smtp_configured(app) or resend_configured(app)
+        ),
+    }), 200
 
 
 @app.route('/favicon.ico')

@@ -18,6 +18,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Set when Resend returns an API error (for user-facing messages).
+last_send_error: str | None = None
+
 
 def smtp_configured(app) -> bool:
     user = (app.config.get("MAIL_USERNAME") or "").strip()
@@ -31,6 +34,9 @@ def resend_configured(app) -> bool:
 
 def send_html_email(app, *, to_email: str, subject: str, html: str) -> bool:
     """Try Gmail SMTP, then Resend API. Returns True if delivered."""
+    global last_send_error
+    last_send_error = None
+
     if smtp_configured(app):
         if _send_via_gmail_smtp(app, to_email=to_email, subject=subject, html=html):
             return True
@@ -92,6 +98,7 @@ def _send_via_gmail_smtp(app, *, to_email: str, subject: str, html: str) -> bool
 
 
 def _send_via_resend(app, *, to_email: str, subject: str, html: str) -> bool:
+    global last_send_error
     api_key = (app.config.get("RESEND_API_KEY") or os.environ.get("RESEND_API_KEY", "")).strip()
     from_addr = (
         app.config.get("RESEND_FROM")
@@ -121,10 +128,13 @@ def _send_via_resend(app, *, to_email: str, subject: str, html: str) -> bool:
         )
         if resp.status_code in (200, 201):
             logger.info("Resend email sent to %s", to_email)
+            last_send_error = None
             return True
-        logger.error("Resend failed (%s): %s", resp.status_code, resp.text[:500])
+        last_send_error = resp.text[:500]
+        logger.error("Resend failed (%s): %s", resp.status_code, last_send_error)
         return False
     except requests.RequestException as exc:
+        last_send_error = str(exc)
         logger.exception("Resend request error: %s", exc)
         return False
 
