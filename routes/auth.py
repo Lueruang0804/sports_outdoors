@@ -22,26 +22,22 @@ from philippine_address_service import (
 auth_bp = Blueprint('auth', __name__)
 
 
-def _on_render_host():
-    """Render.com sets RENDER=true — SMTP outbound is usually blocked there."""
-    return bool(os.environ.get('RENDER', '').strip())
-
-
 def _mail_fail_open():
+    """Only when MAIL_FAIL_OPEN=true — shows OTP on site if email cannot be sent."""
     from app import app
-    if _on_render_host():
-        return True
     return bool(app.config.get('MAIL_FAIL_OPEN'))
 
 
-def _skip_smtp_connect():
-    """Do not open SMTP socket (avoids worker timeout on cloud hosts)."""
+def _email_send_failed_message():
     from app import app
-    from email_delivery import resend_configured, should_skip_smtp
+    from email_delivery import resend_configured
 
-    if resend_configured(app):
-        return False
-    return should_skip_smtp(app)
+    if os.environ.get('RENDER', '').strip() and not resend_configured(app):
+        return (
+            'Could not send email from this server. On Render, add RESEND_API_KEY in '
+            'environment variables (free at resend.com) — Gmail SMTP is blocked there.'
+        )
+    return 'Could not send email. Please try again later or contact support.'
 
 
 def _otp_fail_open_message(otp_code, purpose='verify'):
@@ -569,7 +565,7 @@ def register():
             if not email_sent and not _mail_fail_open():
                 db.session.rollback()
                 return render_register_error(
-                    'Registration failed: could not send verification email. Please try again.',
+                    _email_send_failed_message(),
                     'email',
                 )
 
@@ -692,7 +688,7 @@ def resend_verification():
         db.session.rollback()
         if is_api_request():
             return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
-        flash('Failed to send OTP email. Please check your email configuration or try again later.', 'error')
+        flash(_email_send_failed_message(), 'error')
         return render_template('auth/resend_verification.html')
     
     return render_template('auth/resend_verification.html')
@@ -773,15 +769,18 @@ def forgot_password():
         
         if user:
             reset_otp = create_verification_token(user.id, email)
-            db.session.commit()
             if send_password_reset_otp_email(email, reset_otp):
+                db.session.commit()
                 flash('Password reset OTP sent! Please check your inbox and spam folder.', 'success')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
+            db.session.rollback()
             if _mail_fail_open():
+                reset_otp = create_verification_token(user.id, email)
+                db.session.commit()
                 _stash_inline_otp(email, reset_otp, 'reset')
                 flash(_otp_fail_open_message(reset_otp, 'reset'), 'warning')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
-            flash('Failed to send password reset OTP. Please try again later.', 'error')
+            flash(_email_send_failed_message(), 'error')
         else:
             flash('Email address not found.', 'error')
     
@@ -800,17 +799,20 @@ def forgot_password_api():
         return jsonify({'success': False, 'message': 'Email address not found.'}), 404
 
     reset_otp = create_verification_token(user.id, email)
-    db.session.commit()
     if send_password_reset_otp_email(email, reset_otp):
+        db.session.commit()
         return jsonify({'success': True, 'message': 'Password reset OTP sent.'}), 200
+    db.session.rollback()
     if _mail_fail_open():
+        reset_otp = create_verification_token(user.id, email)
+        db.session.commit()
         return jsonify({
             'success': True,
             'message': 'OTP not emailed; use inline code.',
             'otp_code': reset_otp,
             'otp_delivery': 'inline',
         }), 200
-    return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
+    return jsonify({'success': False, 'message': _email_send_failed_message()}), 500
 
 @auth_bp.route('/verify-reset-otp', methods=['GET', 'POST'])
 def verify_reset_otp():

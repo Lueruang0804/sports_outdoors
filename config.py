@@ -109,8 +109,8 @@ class ProductionConfig(Config):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = _build_database_url('mysql+pymysql://root:@localhost/ecommerce_system')
     SQLALCHEMY_ENGINE_OPTIONS = _engine_options_for(SQLALCHEMY_DATABASE_URI)
-    # Render/free hosts often block outbound SMTP; allow OTP on screen when mail fails.
-    MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', 'true').lower() in ('1', 'true', 'yes')
+    # OTP is sent by email only unless MAIL_FAIL_OPEN=true (dev fallback).
+    MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', 'false').lower() in ('1', 'true', 'yes')
 
 class TestingConfig(Config):
     """Testing configuration"""
