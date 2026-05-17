@@ -17,3 +17,13 @@ services:
         value: "8"
       - key: APP_BASE_URL
         value: https://sports-outdoors.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false

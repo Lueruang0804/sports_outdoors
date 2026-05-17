@@ -74,8 +74,16 @@ class Config:
     # When True, registration still works if SMTP fails (OTP shown on screen).
     MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', '').lower() in ('1', 'true', 'yes')
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
-    RESEND_FROM = os.environ.get('RESEND_FROM', 'Sports & Outdoors <onboarding@resend.dev>').strip()
-    APP_BASE_URL = os.environ.get('APP_BASE_URL') or 'http://localhost:5000'
+    RESEND_FROM = os.environ.get(
+        'RESEND_FROM',
+        'Sports & Outdoors <onboarding@resend.dev>',
+    ).strip()
+    # Render sets RENDER_EXTERNAL_URL automatically (e.g. https://sports-outdoors.onrender.com).
+    APP_BASE_URL = (
+        os.environ.get('APP_BASE_URL')
+        or os.environ.get('RENDER_EXTERNAL_URL')
+        or 'http://localhost:5000'
+    )
     
     # File upload configuration
     UPLOAD_FOLDER = 'static/uploads'
