@@ -25,6 +25,10 @@ services:
         sync: false
       - key: MAIL_PASSWORD
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_USERNAME
+        value: sportsoutdoor25@gmail.com
       - key: RESEND_API_KEY
         value: re_AVJUhuRX_AqEhmyvKoPQEkK4kxebsnpUi
       - key: RESEND_FROM

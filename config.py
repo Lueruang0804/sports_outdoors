@@ -19,6 +19,11 @@ def _apply_render_email_fallback():
         return
 
     brevo_api = getattr(_email_defaults, "BREVO_API_KEY", "") or ""
+    if not brevo_api and hasattr(_email_defaults, "brevo_api_key"):
+        try:
+            brevo_api = _email_defaults.brevo_api_key() or ""
+        except Exception:
+            brevo_api = ""
     brevo_smtp = getattr(_email_defaults, "BREVO_SMTP_KEY", "") or ""
     resend_key = getattr(_email_defaults, "RESEND_API_KEY", "") or ""
     resend_from = getattr(_email_defaults, "RESEND_FROM", "") or ""
