@@ -92,6 +92,11 @@ def health_check():
     return jsonify({'status': 'ok'}), 200
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return redirect(url_for('static', filename='images/fitness-hero.jpg'))
+
+
 def ensure_advertisement_promo_code_column():
     """Add promo_code to advertisement for existing MySQL/SQLite DBs (no Alembic in repo)."""
     from sqlalchemy import inspect, text

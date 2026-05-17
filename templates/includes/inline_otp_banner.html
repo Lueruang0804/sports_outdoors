@@ -1,0 +1,15 @@
+{% if inline_otp %}
+<div class="alert alert-warning border-warning mb-4" role="alert">
+    <h5 class="alert-heading mb-2"><i class="fas fa-envelope-open-text me-2"></i>Your verification code</h5>
+    <p class="mb-2 small text-muted">
+        Email could not be sent from this server (common on free cloud hosting).
+        {% if inline_otp_purpose == 'reset' %}
+        Use this code to reset your password:
+        {% else %}
+        Use this code to verify your account:
+        {% endif %}
+    </p>
+    <p class="display-6 fw-bold text-center mb-2 user-select-all" style="letter-spacing:0.35em;">{{ inline_otp }}</p>
+    <p class="mb-0 small text-muted text-center">Expires in 10 minutes</p>
+</div>
+{% endif %}

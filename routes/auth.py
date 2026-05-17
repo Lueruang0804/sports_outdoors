@@ -36,20 +36,53 @@ def _mail_fail_open():
 
 def _skip_smtp_connect():
     """Do not open SMTP socket (avoids worker timeout on cloud hosts)."""
-    if _on_render_host():
-        return True
-    if os.environ.get('MAIL_SUPPRESS_SEND', '').lower() in ('1', 'true', 'yes'):
-        return True
     from app import app
-    return bool(app.config.get('MAIL_FAIL_OPEN')) and os.environ.get('FLASK_ENV') == 'production'
+    from email_delivery import resend_configured, should_skip_smtp
+
+    if resend_configured(app):
+        return False
+    return should_skip_smtp(app)
 
 
-def _otp_fail_open_message(otp_code):
+def _otp_fail_open_message(otp_code, purpose='verify'):
     """User-visible hint when cloud SMTP is blocked (e.g. Render free tier)."""
+    if purpose == 'reset':
+        label = 'password reset'
+    else:
+        label = 'account verification'
     return (
-        f'Email could not be sent from this server (cloud SMTP is often blocked). '
-        f'Your 6-digit OTP is: {otp_code} — enter it on the verification page.'
+        f'Email could not be sent from this server. Use this code for {label}: '
+        f'<strong>{otp_code}</strong> (also shown below).'
     )
+
+
+def _stash_inline_otp(email, otp_code, purpose):
+    session['inline_otp'] = otp_code
+    session['inline_otp_email'] = email
+    session['inline_otp_purpose'] = purpose
+
+
+def _clear_inline_otp():
+    session.pop('inline_otp', None)
+    session.pop('inline_otp_email', None)
+    session.pop('inline_otp_purpose', None)
+
+
+def _inline_otp_context(prefilled_email=''):
+    otp = session.get('inline_otp')
+    email = session.get('inline_otp_email') or prefilled_email
+    purpose = session.get('inline_otp_purpose', 'verify')
+    if not otp:
+        return {}
+    return {'inline_otp': otp, 'inline_otp_email': email, 'inline_otp_purpose': purpose}
+
+
+def _verify_otp_template_kwargs(prefilled_email=''):
+    return {'prefilled_email': prefilled_email, **_inline_otp_context(prefilled_email)}
+
+
+def _verify_reset_otp_template_kwargs(prefilled_email=''):
+    return {'prefilled_email': prefilled_email, **_inline_otp_context(prefilled_email)}
 
 
 def is_api_request():
@@ -113,131 +146,54 @@ def create_verification_token(user_id, email):
     return token
 
 def send_verification_email(email, verification_token):
-    """Send verification email to user"""
-    from app import mail, app
-    verification_path = url_for('auth.verify_email', token=verification_token, _external=False)
-    verification_link = urljoin(f"{app.config['APP_BASE_URL'].rstrip('/')}/", verification_path.lstrip('/'))
-    otp_page_path = url_for('auth.verify_otp', _external=False)
-    otp_page_link = urljoin(f"{app.config['APP_BASE_URL'].rstrip('/')}/", otp_page_path.lstrip('/'))
-    
-    # Check if email is properly configured
-    if app.config['MAIL_USERNAME'] == 'your-email@gmail.com' or app.config['MAIL_PASSWORD'] == 'your-app-password':
-        print(f"⚠️  EMAIL NOT CONFIGURED: Verification link for {email}")
-        print(f"🔗 Manual verification link: {verification_link}")
-        print("📝 To enable email sending, update MAIL_USERNAME and MAIL_PASSWORD in app.py")
-        print("📖 See GMAIL_SETUP_GUIDE.md for setup instructions")
-        return False
+    """Send registration OTP via Resend API, SMTP, or inline fallback."""
+    from app import app
+    from email_delivery import otp_email_html, send_html_email
 
-    if _skip_smtp_connect():
-        app.logger.info('SMTP skipped on cloud host; OTP for %s: %s', email, verification_token)
-        return False
-    
-    try:
-        msg = Message(
-            'Your OTP Code - Sports and Outdoors Ecommerce',
-            sender=app.config['MAIL_USERNAME'],  # Use configured email
-            recipients=[email]
-        )
-        msg.html = f'''
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #28a745; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>Welcome to Sports and Outdoors!</h1>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-                <h2 style="color: #333;">Email Verification Required</h2>
-                <p>Thank you for registering with Sports and Outdoors Ecommerce System!</p>
-                <p>To complete your registration, enter this OTP code in the verification page:</p>
-                
-                <div style="text-align: center; margin: 30px 0; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
-                    <div style="font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #28a745;">
-                        {verification_token}
-                    </div>
-                </div>
-                
-                <p style="color: #666; font-size: 14px;">
-                    Open this page to submit your OTP:<br>
-                    <a href="{otp_page_link}">
-                        {otp_page_link}
-                    </a>
-                </p>
-                
-                <p style="color: #666; font-size: 14px;">
-                    <strong>Important:</strong> This OTP code expires in 10 minutes.
-                </p>
-                
-                <p style="color: #666; font-size: 14px;">
-                    If you did not create an account with us, please ignore this email.
-                </p>
-                
-                <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-                <p style="color: #999; font-size: 12px; text-align: center;">
-                    © 2024 Sports and Outdoors Ecommerce System. All rights reserved.
-                </p>
-            </div>
-        </body>
-        </html>
-        '''
-        mail.send(msg)
-        print(f"SUCCESS: Verification email sent successfully to {email}")
-        return True
-    except Exception as e:
-        print(f"ERROR: Error sending email to {email}: {e}")
-        print(f"🔗 Manual verification link: {verification_link}")
-        print("Please check your Gmail configuration in app.py")
-        print("See GMAIL_SETUP_GUIDE.md for setup instructions")
-        return False
+    otp_page_link = urljoin(
+        f"{app.config['APP_BASE_URL'].rstrip('/')}/",
+        url_for('auth.verify_otp', _external=False).lstrip('/'),
+    )
+    html = otp_email_html(
+        title='Sports and Outdoors',
+        heading='Email Verification',
+        body='Thank you for registering. Enter this OTP on the verification page:',
+        otp_code=verification_token,
+        action_link=otp_page_link,
+        accent='#28a745',
+    )
+    return send_html_email(
+        app,
+        to_email=email,
+        subject='Your OTP Code - Sports and Outdoors',
+        html=html,
+    )
+
 
 def send_password_reset_otp_email(email, otp_code):
-    """Send OTP code for password reset."""
-    from app import mail, app
-    otp_page_path = url_for('auth.verify_reset_otp', _external=False)
-    otp_page_link = urljoin(f"{app.config['APP_BASE_URL'].rstrip('/')}/", otp_page_path.lstrip('/'))
+    """Send password-reset OTP via Resend API, SMTP, or inline fallback."""
+    from app import app
+    from email_delivery import otp_email_html, send_html_email
 
-    if app.config['MAIL_USERNAME'] == 'your-email@gmail.com' or app.config['MAIL_PASSWORD'] == 'your-app-password':
-        print(f"⚠️  EMAIL NOT CONFIGURED: Password reset OTP for {email}: {otp_code}")
-        return False
+    otp_page_link = urljoin(
+        f"{app.config['APP_BASE_URL'].rstrip('/')}/",
+        url_for('auth.verify_reset_otp', _external=False).lstrip('/'),
+    )
+    html = otp_email_html(
+        title='Password Reset',
+        heading='Reset Your Password',
+        body='Use this OTP code to reset your password:',
+        otp_code=otp_code,
+        action_link=otp_page_link,
+        accent='#ffc107',
+    )
+    return send_html_email(
+        app,
+        to_email=email,
+        subject='Password Reset OTP - Sports and Outdoors',
+        html=html,
+    )
 
-    if _skip_smtp_connect():
-        app.logger.info('SMTP skipped on cloud host; reset OTP for %s: %s', email, otp_code)
-        return False
-
-    try:
-        msg = Message(
-            'Password Reset OTP - Sports and Outdoors Ecommerce',
-            sender=app.config['MAIL_USERNAME'],
-            recipients=[email]
-        )
-        msg.html = f'''
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #ffc107; color: #212529; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1>Password Reset OTP</h1>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-                <p>Use this 6-digit OTP code to reset your password:</p>
-                <div style="text-align: center; margin: 30px 0; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
-                    <div style="font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #28a745;">
-                        {otp_code}
-                    </div>
-                </div>
-                <p style="color: #666; font-size: 14px;">
-                    Open this page to submit your OTP:<br>
-                    <a href="{otp_page_link}">{otp_page_link}</a>
-                </p>
-                <p style="color: #666; font-size: 14px;">
-                    <strong>Important:</strong> This OTP code expires in 10 minutes.
-                </p>
-            </div>
-        </body>
-        </html>
-        '''
-        mail.send(msg)
-        print(f"SUCCESS: Password reset OTP email sent successfully to {email}")
-        return True
-    except Exception as e:
-        print(f"ERROR: Failed to send password reset OTP to {email}: {e}")
-        return False
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -652,7 +608,8 @@ def register():
             return jsonify(body), 201
 
         if not email_sent and _mail_fail_open():
-            flash(_otp_fail_open_message(verification_token), 'warning')
+            _stash_inline_otp(email, verification_token, 'verify')
+            flash(_otp_fail_open_message(verification_token, 'verify'), 'warning')
         elif user_type == 'buyer':
             flash('Registration successful! Enter the 6-digit OTP sent to your email to activate your account.', 'success')
         else:
@@ -728,7 +685,8 @@ def resend_verification():
                     'otp_code': verification_token,
                     'otp_delivery': 'inline',
                 }), 200
-            flash(_otp_fail_open_message(verification_token), 'warning')
+            _stash_inline_otp(email, verification_token, 'verify')
+            flash(_otp_fail_open_message(verification_token, 'verify'), 'warning')
             return redirect(url_for('auth.verify_otp', email=email))
 
         db.session.rollback()
@@ -752,7 +710,7 @@ def verify_otp():
             if is_api_request():
                 return jsonify({'success': False, 'message': 'Email and OTP code are required.'}), 400
             flash('Please provide your email and OTP code.', 'error')
-            return render_template('auth/verify_otp.html', prefilled_email=email)
+            return render_template('auth/verify_otp.html', **_verify_otp_template_kwargs(email))
 
         verification = EmailVerification.query.filter_by(
             email=email,
@@ -764,7 +722,7 @@ def verify_otp():
             if is_api_request():
                 return jsonify({'success': False, 'message': 'Invalid OTP code.'}), 400
             flash('Invalid OTP code. Please check and try again.', 'error')
-            return render_template('auth/verify_otp.html', prefilled_email=email)
+            return render_template('auth/verify_otp.html', **_verify_otp_template_kwargs(email))
 
         if datetime.utcnow() > verification.expires_at:
             if is_api_request():
@@ -782,6 +740,7 @@ def verify_otp():
         user.is_verified = True
         verification.is_used = True
         db.session.commit()
+        _clear_inline_otp()
         if is_api_request():
             return jsonify({
                 'success': True,
@@ -798,7 +757,7 @@ def verify_otp():
             flash('Email verified successfully! Your account is pending admin approval.', 'success')
         return redirect(url_for('auth.login'))
 
-    return render_template('auth/verify_otp.html', prefilled_email=prefilled_email)
+    return render_template('auth/verify_otp.html', **_verify_otp_template_kwargs(prefilled_email))
 
 @auth_bp.route('/logout')
 def logout():
@@ -819,7 +778,8 @@ def forgot_password():
                 flash('Password reset OTP sent! Please check your inbox and spam folder.', 'success')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
             if _mail_fail_open():
-                flash(_otp_fail_open_message(reset_otp), 'warning')
+                _stash_inline_otp(email, reset_otp, 'reset')
+                flash(_otp_fail_open_message(reset_otp, 'reset'), 'warning')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
             flash('Failed to send password reset OTP. Please try again later.', 'error')
         else:
@@ -862,7 +822,7 @@ def verify_reset_otp():
 
         if not email or not otp_code:
             flash('Please provide your email and OTP code.', 'error')
-            return render_template('auth/verify_reset_otp.html', prefilled_email=email)
+            return render_template('auth/verify_reset_otp.html', **_verify_reset_otp_template_kwargs(email))
 
         verification = EmailVerification.query.filter_by(
             email=email,
@@ -872,7 +832,7 @@ def verify_reset_otp():
 
         if not verification:
             flash('Invalid OTP code. Please check and try again.', 'error')
-            return render_template('auth/verify_reset_otp.html', prefilled_email=email)
+            return render_template('auth/verify_reset_otp.html', **_verify_reset_otp_template_kwargs(email))
 
         if datetime.utcnow() > verification.expires_at:
             flash('OTP code has expired. Please request a new one.', 'error')
@@ -887,7 +847,7 @@ def verify_reset_otp():
         session['password_reset_verification_id'] = verification.id
         return redirect(url_for('auth.reset_password_otp'))
 
-    return render_template('auth/verify_reset_otp.html', prefilled_email=prefilled_email)
+    return render_template('auth/verify_reset_otp.html', **_verify_reset_otp_template_kwargs(prefilled_email))
 
 
 @auth_bp.route('/api/verify-reset-otp', methods=['POST'])
