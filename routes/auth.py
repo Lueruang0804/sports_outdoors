@@ -51,6 +51,11 @@ def _email_send_failed_message():
             f'verify {sender or "your Gmail"} as sender, add BREVO_API_KEY to Render Environment, '
             f'and redeploy — then OTP works for any email.'
         )
+    if brevo_api_configured(app) and last_send_error and 'authorised_ips' in last_send_error.lower():
+        return (
+            'Brevo blocked this server IP. In Brevo go to Security → Authorized IPs and turn off '
+            'IP restriction (or allow all), then try again.'
+        )
     if brevo_api_configured(app) and last_send_error and 'not verified' in last_send_error.lower():
         return (
             f'Confirm sender {sender} in Brevo: Senders & IP → verify the email Brevo sent you, '
