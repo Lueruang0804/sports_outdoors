@@ -87,6 +87,11 @@ app.register_blueprint(seller_ad_bp)
 app.register_blueprint(admin_ad_bp)
 
 
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
+
 def ensure_advertisement_promo_code_column():
     """Add promo_code to advertisement for existing MySQL/SQLite DBs (no Alembic in repo)."""
     from sqlalchemy import inspect, text
@@ -108,12 +113,6 @@ def ensure_advertisement_promo_code_column():
                     conn.execute(text('ALTER TABLE advertisement ADD COLUMN promo_code VARCHAR(64) NULL'))
         except Exception as e:
             app.logger.warning('Could not add advertisement.promo_code: %s', e)
-
-
-try:
-    ensure_advertisement_promo_code_column()
-except Exception:
-    pass
 
 
 def ensure_delivery_pod_columns():
@@ -143,12 +142,6 @@ def ensure_delivery_pod_columns():
             app.logger.warning('Could not add delivery POD columns: %s', e)
 
 
-try:
-    ensure_delivery_pod_columns()
-except Exception:
-    pass
-
-
 def ensure_delivered_order_status_synced():
     """Align order.status with completed deliveries (legacy rows + on startup)."""
     from database import repair_delivered_order_status_mismatches
@@ -162,10 +155,24 @@ def ensure_delivered_order_status_synced():
             app.logger.warning('Could not repair delivered order statuses: %s', e)
 
 
-try:
+def run_startup_db_tasks():
+    """Schema repair / sync — skip on Gunicorn production boot (Supabase already migrated)."""
+    ensure_advertisement_promo_code_column()
+    ensure_delivery_pod_columns()
     ensure_delivered_order_status_synced()
-except Exception:
-    pass
+
+
+def _should_run_startup_db_tasks():
+    if config_name != 'production':
+        return True
+    return os.environ.get('RUN_STARTUP_DB', '').lower() in ('1', 'true', 'yes')
+
+
+if _should_run_startup_db_tasks():
+    try:
+        run_startup_db_tasks()
+    except Exception:
+        pass
 
 PH_TZ = timezone(timedelta(hours=8))
 
@@ -244,8 +251,6 @@ def currency_filter(value):
 
 if __name__ == '__main__':
     with app.app_context():
-        ensure_advertisement_promo_code_column()
-        ensure_delivery_pod_columns()
-        ensure_delivered_order_status_synced()
+        run_startup_db_tasks()
         db.create_all()
     app.run(host='0.0.0.0', port=5000, debug=True)
