@@ -22,9 +22,26 @@ from philippine_address_service import (
 auth_bp = Blueprint('auth', __name__)
 
 
+def _on_render_host():
+    """Render.com sets RENDER=true — SMTP outbound is usually blocked there."""
+    return bool(os.environ.get('RENDER', '').strip())
+
+
 def _mail_fail_open():
     from app import app
+    if _on_render_host():
+        return True
     return bool(app.config.get('MAIL_FAIL_OPEN'))
+
+
+def _skip_smtp_connect():
+    """Do not open SMTP socket (avoids worker timeout on cloud hosts)."""
+    if _on_render_host():
+        return True
+    if os.environ.get('MAIL_SUPPRESS_SEND', '').lower() in ('1', 'true', 'yes'):
+        return True
+    from app import app
+    return bool(app.config.get('MAIL_FAIL_OPEN')) and os.environ.get('FLASK_ENV') == 'production'
 
 
 def _otp_fail_open_message(otp_code):
@@ -91,7 +108,7 @@ def create_verification_token(user_id, email):
     )
     
     db.session.add(verification)
-    db.session.commit()
+    db.session.flush()
     
     return token
 
@@ -109,6 +126,10 @@ def send_verification_email(email, verification_token):
         print(f"🔗 Manual verification link: {verification_link}")
         print("📝 To enable email sending, update MAIL_USERNAME and MAIL_PASSWORD in app.py")
         print("📖 See GMAIL_SETUP_GUIDE.md for setup instructions")
+        return False
+
+    if _skip_smtp_connect():
+        app.logger.info('SMTP skipped on cloud host; OTP for %s: %s', email, verification_token)
         return False
     
     try:
@@ -175,6 +196,10 @@ def send_password_reset_otp_email(email, otp_code):
 
     if app.config['MAIL_USERNAME'] == 'your-email@gmail.com' or app.config['MAIL_PASSWORD'] == 'your-app-password':
         print(f"⚠️  EMAIL NOT CONFIGURED: Password reset OTP for {email}: {otp_code}")
+        return False
+
+    if _skip_smtp_connect():
+        app.logger.info('SMTP skipped on cloud host; reset OTP for %s: %s', email, otp_code)
         return False
 
     try:
@@ -581,25 +606,37 @@ def register():
         db.session.add(user)
         db.session.flush()  # Get user ID
 
-        # Create and send email verification token
-        verification_token = create_verification_token(user.id, email)
-        email_sent = send_verification_email(email, verification_token)
-        if not email_sent and not _mail_fail_open():
-            db.session.rollback()
-            return render_register_error('Registration failed: could not send verification email. Please try again.', 'email')
+        try:
+            # Create and send email verification token
+            verification_token = create_verification_token(user.id, email)
+            email_sent = send_verification_email(email, verification_token)
+            if not email_sent and not _mail_fail_open():
+                db.session.rollback()
+                return render_register_error(
+                    'Registration failed: could not send verification email. Please try again.',
+                    'email',
+                )
 
-        # Notify admin about new registration
-        admin_users = User.query.filter_by(user_type='admin').all()
-        for admin in admin_users:
-            notification = Notification(
-                user_id=admin.id,
-                title='New User Registration',
-                message=f'New {user_type} registration from {first_name} {last_name} ({email})',
-                notification_type='registration'
-            )
-            db.session.add(notification)
-        
-        db.session.commit()
+            # Notify admin about new registration
+            admin_users = User.query.filter_by(user_type='admin').all()
+            for admin in admin_users:
+                notification = Notification(
+                    user_id=admin.id,
+                    title='New User Registration',
+                    message=f'New {user_type} registration from {first_name} {last_name} ({email})',
+                    notification_type='registration',
+                )
+                db.session.add(notification)
+
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            from app import app
+            app.logger.exception('Registration failed: %s', exc)
+            if is_api_request():
+                return jsonify({'success': False, 'message': 'Registration failed. Please try again.'}), 500
+            return render_register_error('Registration failed due to a server error. Please try again.', 'email')
+
         if is_api_request():
             body = {
                 'success': True,
@@ -673,15 +710,17 @@ def resend_verification():
         
         # Create new verification token
         verification_token = create_verification_token(user.id, email)
-        
+
         # Send verification email
         if send_verification_email(email, verification_token):
+            db.session.commit()
             if is_api_request():
                 return jsonify({'success': True, 'message': 'OTP resent successfully.'}), 200
             flash('A new OTP code was sent. Please check your inbox and spam folder.', 'success')
             return redirect(url_for('auth.verify_otp', email=email))
 
         if _mail_fail_open():
+            db.session.commit()
             if is_api_request():
                 return jsonify({
                     'success': True,
@@ -692,6 +731,7 @@ def resend_verification():
             flash(_otp_fail_open_message(verification_token), 'warning')
             return redirect(url_for('auth.verify_otp', email=email))
 
+        db.session.rollback()
         if is_api_request():
             return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
         flash('Failed to send OTP email. Please check your email configuration or try again later.', 'error')
@@ -774,6 +814,7 @@ def forgot_password():
         
         if user:
             reset_otp = create_verification_token(user.id, email)
+            db.session.commit()
             if send_password_reset_otp_email(email, reset_otp):
                 flash('Password reset OTP sent! Please check your inbox and spam folder.', 'success')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
@@ -799,6 +840,7 @@ def forgot_password_api():
         return jsonify({'success': False, 'message': 'Email address not found.'}), 404
 
     reset_otp = create_verification_token(user.id, email)
+    db.session.commit()
     if send_password_reset_otp_email(email, reset_otp):
         return jsonify({'success': True, 'message': 'Password reset OTP sent.'}), 200
     if _mail_fail_open():
