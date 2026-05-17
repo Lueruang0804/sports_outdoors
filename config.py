@@ -70,6 +70,9 @@ class Config:
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'your-email@gmail.com'
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'your-app-password'
+    MAIL_TIMEOUT = int(os.environ.get('MAIL_TIMEOUT', '8'))
+    # When True, registration still works if SMTP fails (OTP shown on screen).
+    MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', '').lower() in ('1', 'true', 'yes')
     APP_BASE_URL = os.environ.get('APP_BASE_URL') or 'http://localhost:5000'
     
     # File upload configuration
@@ -96,6 +99,8 @@ class ProductionConfig(Config):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = _build_database_url('mysql+pymysql://root:@localhost/ecommerce_system')
     SQLALCHEMY_ENGINE_OPTIONS = _engine_options_for(SQLALCHEMY_DATABASE_URI)
+    # Render/free hosts often block outbound SMTP; allow OTP on screen when mail fails.
+    MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', 'true').lower() in ('1', 'true', 'yes')
 
 class TestingConfig(Config):
     """Testing configuration"""

@@ -11,3 +11,9 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: MAIL_FAIL_OPEN
+        value: "true"
+      - key: MAIL_TIMEOUT
+        value: "8"
+      - key: APP_BASE_URL
+        value: https://sports-outdoors.onrender.com

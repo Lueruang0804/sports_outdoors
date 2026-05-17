@@ -21,6 +21,20 @@ from philippine_address_service import (
 
 auth_bp = Blueprint('auth', __name__)
 
+
+def _mail_fail_open():
+    from app import app
+    return bool(app.config.get('MAIL_FAIL_OPEN'))
+
+
+def _otp_fail_open_message(otp_code):
+    """User-visible hint when cloud SMTP is blocked (e.g. Render free tier)."""
+    return (
+        f'Email could not be sent from this server (cloud SMTP is often blocked). '
+        f'Your 6-digit OTP is: {otp_code} — enter it on the verification page.'
+    )
+
+
 def is_api_request():
     accept = request.headers.get('Accept', '')
     return request.is_json or 'application/json' in accept
@@ -569,10 +583,11 @@ def register():
 
         # Create and send email verification token
         verification_token = create_verification_token(user.id, email)
-        if not send_verification_email(email, verification_token):
+        email_sent = send_verification_email(email, verification_token)
+        if not email_sent and not _mail_fail_open():
             db.session.rollback()
             return render_register_error('Registration failed: could not send verification email. Please try again.', 'email')
-        
+
         # Notify admin about new registration
         admin_users = User.query.filter_by(user_type='admin').all()
         for admin in admin_users:
@@ -586,15 +601,22 @@ def register():
         
         db.session.commit()
         if is_api_request():
-            return jsonify({
+            body = {
                 'success': True,
                 'message': 'Registration successful. Verify OTP to activate account.',
                 'email': email,
                 'role': user_type,
                 'approval_status': 'approved' if user_type == 'buyer' else 'pending',
-            }), 201
-        
-        if user_type == 'buyer':
+            }
+            if not email_sent and _mail_fail_open():
+                body['otp_code'] = verification_token
+                body['otp_delivery'] = 'inline'
+                body['message'] += ' OTP included in response (email not sent from server).'
+            return jsonify(body), 201
+
+        if not email_sent and _mail_fail_open():
+            flash(_otp_fail_open_message(verification_token), 'warning')
+        elif user_type == 'buyer':
             flash('Registration successful! Enter the 6-digit OTP sent to your email to activate your account.', 'success')
         else:
             flash('Registration successful! Enter your email OTP first, then wait for admin approval.', 'success')
@@ -657,6 +679,17 @@ def resend_verification():
             if is_api_request():
                 return jsonify({'success': True, 'message': 'OTP resent successfully.'}), 200
             flash('A new OTP code was sent. Please check your inbox and spam folder.', 'success')
+            return redirect(url_for('auth.verify_otp', email=email))
+
+        if _mail_fail_open():
+            if is_api_request():
+                return jsonify({
+                    'success': True,
+                    'message': 'OTP not emailed; use inline code.',
+                    'otp_code': verification_token,
+                    'otp_delivery': 'inline',
+                }), 200
+            flash(_otp_fail_open_message(verification_token), 'warning')
             return redirect(url_for('auth.verify_otp', email=email))
 
         if is_api_request():
@@ -744,6 +777,9 @@ def forgot_password():
             if send_password_reset_otp_email(email, reset_otp):
                 flash('Password reset OTP sent! Please check your inbox and spam folder.', 'success')
                 return redirect(url_for('auth.verify_reset_otp', email=email))
+            if _mail_fail_open():
+                flash(_otp_fail_open_message(reset_otp), 'warning')
+                return redirect(url_for('auth.verify_reset_otp', email=email))
             flash('Failed to send password reset OTP. Please try again later.', 'error')
         else:
             flash('Email address not found.', 'error')
@@ -765,6 +801,13 @@ def forgot_password_api():
     reset_otp = create_verification_token(user.id, email)
     if send_password_reset_otp_email(email, reset_otp):
         return jsonify({'success': True, 'message': 'Password reset OTP sent.'}), 200
+    if _mail_fail_open():
+        return jsonify({
+            'success': True,
+            'message': 'OTP not emailed; use inline code.',
+            'otp_code': reset_otp,
+            'otp_delivery': 'inline',
+        }), 200
     return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
 
 @auth_bp.route('/verify-reset-otp', methods=['GET', 'POST'])
