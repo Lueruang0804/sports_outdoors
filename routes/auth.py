@@ -30,23 +30,28 @@ def _mail_fail_open():
 
 def _email_send_failed_message():
     from app import app
-    from email_delivery import last_send_error, resend_configured
+    from email_delivery import brevo_configured, email_ready, last_send_error
 
-    if os.environ.get('RENDER', '').strip() and not resend_configured(app):
+    sender = (app.config.get('MAIL_USERNAME') or '').strip()
+
+    if os.environ.get('RENDER', '').strip() and not email_ready(app):
         return (
-            'Email is not configured on Render yet. In Render Dashboard → sports-outdoors → '
-            'Environment, add RESEND_API_KEY (from resend.com), save, then Manual Deploy. '
-            'Gmail SMTP does not work on Render.'
+            'Email is not configured on Render. Add BREVO_API_KEY (recommended, free at brevo.com) '
+            'or RESEND_API_KEY, then redeploy. Gmail SMTP does not work on Render.'
         )
-    if last_send_error and 'verify a domain' in last_send_error.lower():
+    if not brevo_configured(app) and last_send_error and (
+        'verify a domain' in last_send_error.lower()
+        or 'only send testing emails' in last_send_error.lower()
+    ):
         return (
-            'Email could not be sent to this address. On Resend free tier, verify a domain at '
-            'resend.com/domains, or use the email tied to your Resend account for testing.'
+            f'Resend cannot send to this address on the free tier. Sign up at brevo.com (free), '
+            f'verify {sender or "your Gmail"} as sender, add BREVO_API_KEY to Render Environment, '
+            f'and redeploy — then OTP works for any email.'
         )
-    if last_send_error and 'only send testing emails' in last_send_error.lower():
+    if brevo_configured(app) and last_send_error and 'not verified' in last_send_error.lower():
         return (
-            'This email address cannot receive OTP yet. Verify a domain on resend.com/domains, '
-            'or register using the same Gmail as your Resend account.'
+            f'Confirm sender {sender} in Brevo: Senders & IP → verify the email Brevo sent you, '
+            f'then try again.'
         )
     return 'Could not send email. Please try again later or contact support.'
 

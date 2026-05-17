@@ -93,6 +93,7 @@ class Config:
     MAIL_TIMEOUT = int(os.environ.get('MAIL_TIMEOUT', '8'))
     # When True, registration still works if SMTP fails (OTP shown on screen).
     MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', '').lower() in ('1', 'true', 'yes')
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
     RESEND_FROM = os.environ.get(
         'RESEND_FROM',

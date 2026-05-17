@@ -46,6 +46,10 @@ $renderVars = [ordered]@{
     MAIL_PASSWORD      = $local["MAIL_PASSWORD"]
 }
 
+if ($local["BREVO_API_KEY"]) {
+    $renderVars["BREVO_API_KEY"] = $local["BREVO_API_KEY"]
+}
+
 if ($local["RESEND_API_KEY"]) {
     $renderVars["RESEND_API_KEY"] = $local["RESEND_API_KEY"]
     if ($local["RESEND_FROM"]) {

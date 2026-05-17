@@ -2,8 +2,8 @@
 Send OTP / transactional email.
 
 Order:
-1. Gmail SMTP from MAIL_* in .env (works on local PC)
-2. Resend HTTP API if RESEND_API_KEY is set (works on Render — SMTP is blocked there)
+- Local PC: Gmail SMTP (MAIL_* in .env), then Brevo API, then Resend API
+- Render: Brevo API first (any recipient after sender verify), then Resend, skip SMTP (blocked)
 """
 
 from __future__ import annotations
@@ -18,8 +18,11 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Set when Resend returns an API error (for user-facing messages).
 last_send_error: str | None = None
+
+
+def _on_render() -> bool:
+    return bool(os.environ.get("RENDER", "").strip())
 
 
 def smtp_configured(app) -> bool:
@@ -28,16 +31,35 @@ def smtp_configured(app) -> bool:
     return user not in ("", "your-email@gmail.com") and pwd not in ("", "your-app-password")
 
 
+def brevo_configured(app) -> bool:
+    return bool((app.config.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY", "")).strip())
+
+
 def resend_configured(app) -> bool:
     return bool((app.config.get("RESEND_API_KEY") or os.environ.get("RESEND_API_KEY", "")).strip())
 
 
+def email_ready(app) -> bool:
+    if _on_render():
+        return brevo_configured(app) or resend_configured(app)
+    return smtp_configured(app) or brevo_configured(app) or resend_configured(app)
+
+
+def _mail_sender_email(app) -> str:
+    return (app.config.get("MAIL_USERNAME") or os.environ.get("MAIL_USERNAME", "")).strip()
+
+
 def send_html_email(app, *, to_email: str, subject: str, html: str) -> bool:
-    """Try Gmail SMTP, then Resend API. Returns True if delivered."""
+    """Deliver HTML email using the best available provider."""
     global last_send_error
     last_send_error = None
 
-    if smtp_configured(app):
+    if brevo_configured(app):
+        if _send_via_brevo(app, to_email=to_email, subject=subject, html=html):
+            return True
+        logger.warning("Brevo failed for %s; trying fallbacks.", to_email)
+
+    if not _on_render() and smtp_configured(app):
         if _send_via_gmail_smtp(app, to_email=to_email, subject=subject, html=html):
             return True
         logger.warning("Gmail SMTP failed for %s; trying Resend if configured.", to_email)
@@ -45,12 +67,44 @@ def send_html_email(app, *, to_email: str, subject: str, html: str) -> bool:
     if resend_configured(app):
         return _send_via_resend(app, to_email=to_email, subject=subject, html=html)
 
-    if smtp_configured(app) and os.environ.get("RENDER", "").strip():
-        logger.error(
-            "Render blocks Gmail SMTP. Add RESEND_API_KEY to environment "
-            "(free at resend.com) for email on the live site."
-        )
+    if _on_render() and smtp_configured(app):
+        logger.error("Render blocks Gmail SMTP. Set BREVO_API_KEY (recommended) or RESEND_API_KEY.")
     return False
+
+
+def _send_via_brevo(app, *, to_email: str, subject: str, html: str) -> bool:
+    """Brevo HTTP API — works on Render; verify MAIL_USERNAME once in Brevo dashboard."""
+    global last_send_error
+    api_key = (app.config.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY", "")).strip()
+    sender_email = _mail_sender_email(app)
+    if not sender_email or "@" not in sender_email:
+        last_send_error = "Set MAIL_USERNAME in .env to your verified Brevo sender email."
+        return False
+
+    payload = {
+        "sender": {"name": "Sports & Outdoors", "email": sender_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html,
+    }
+    try:
+        resp = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={"api-key": api_key, "Content-Type": "application/json"},
+            json=payload,
+            timeout=15,
+        )
+        if resp.status_code in (200, 201):
+            logger.info("Brevo email sent to %s from %s", to_email, sender_email)
+            last_send_error = None
+            return True
+        last_send_error = resp.text[:500]
+        logger.error("Brevo failed (%s): %s", resp.status_code, last_send_error)
+        return False
+    except requests.RequestException as exc:
+        last_send_error = str(exc)
+        logger.exception("Brevo request error: %s", exc)
+        return False
 
 
 def _send_via_gmail_smtp(app, *, to_email: str, subject: str, html: str) -> bool:
@@ -105,7 +159,7 @@ def _send_via_resend(app, *, to_email: str, subject: str, html: str) -> bool:
         or os.environ.get("RESEND_FROM")
         or "Sports & Outdoors <onboarding@resend.dev>"
     ).strip()
-    reply_to = (app.config.get("MAIL_USERNAME") or "").strip()
+    reply_to = _mail_sender_email(app)
 
     payload = {
         "from": from_addr,
