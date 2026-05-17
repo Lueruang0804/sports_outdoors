@@ -8,6 +8,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _apply_render_resend_fallback():
+    """Resend on Render when dashboard env omits RESEND_API_KEY (SMTP is blocked)."""
+    if not os.environ.get("RENDER", "").strip():
+        return
+    if os.environ.get("RESEND_API_KEY", "").strip():
+        return
+    try:
+        from render_email_defaults import RESEND_API_KEY, RESEND_FROM
+    except ImportError:
+        return
+    if RESEND_API_KEY:
+        os.environ["RESEND_API_KEY"] = RESEND_API_KEY
+    if RESEND_FROM and not os.environ.get("RESEND_FROM"):
+        os.environ["RESEND_FROM"] = RESEND_FROM
+
+
+_apply_render_resend_fallback()
+
+
 def _build_database_url(default_url):
     """
     Build a SQLAlchemy database URL with Supabase/Postgres compatibility.
