@@ -37,7 +37,8 @@ def _email_send_failed_message():
     if os.environ.get('RENDER', '').strip() and not email_ready(app):
         return (
             'Email is not configured on Render. Add BREVO_API_KEY starting with xkeysib- '
-            '(Brevo → SMTP & API → API Keys), then redeploy. Gmail SMTP does not work on Render.'
+            '(Brevo → SMTP & API → API Keys), save Environment, then Manual Deploy. '
+            'Gmail SMTP does not work on Render.'
         )
     if last_send_error and 'xsmtpsib' in last_send_error.lower():
         return last_send_error

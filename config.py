@@ -14,22 +14,23 @@ def _apply_render_email_fallback():
     if not os.environ.get("RENDER", "").strip():
         return
     try:
-        from render_email_defaults import (
-            BREVO_API_KEY,
-            BREVO_SMTP_KEY,
-            RESEND_API_KEY,
-            RESEND_FROM,
-        )
+        import render_email_defaults as _email_defaults
     except ImportError:
         return
-    if BREVO_API_KEY and not os.environ.get("BREVO_API_KEY", "").strip():
-        os.environ["BREVO_API_KEY"] = BREVO_API_KEY
-    if BREVO_SMTP_KEY and not os.environ.get("BREVO_SMTP_KEY", "").strip():
-        os.environ["BREVO_SMTP_KEY"] = BREVO_SMTP_KEY
-    if RESEND_API_KEY and not os.environ.get("RESEND_API_KEY", "").strip():
-        os.environ["RESEND_API_KEY"] = RESEND_API_KEY
-    if RESEND_FROM and not os.environ.get("RESEND_FROM"):
-        os.environ["RESEND_FROM"] = RESEND_FROM
+
+    brevo_api = getattr(_email_defaults, "BREVO_API_KEY", "") or ""
+    brevo_smtp = getattr(_email_defaults, "BREVO_SMTP_KEY", "") or ""
+    resend_key = getattr(_email_defaults, "RESEND_API_KEY", "") or ""
+    resend_from = getattr(_email_defaults, "RESEND_FROM", "") or ""
+
+    if brevo_api and not os.environ.get("BREVO_API_KEY", "").strip():
+        os.environ["BREVO_API_KEY"] = brevo_api
+    if brevo_smtp and not os.environ.get("BREVO_SMTP_KEY", "").strip():
+        os.environ["BREVO_SMTP_KEY"] = brevo_smtp
+    if resend_key and not os.environ.get("RESEND_API_KEY", "").strip():
+        os.environ["RESEND_API_KEY"] = resend_key
+    if resend_from and not os.environ.get("RESEND_FROM"):
+        os.environ["RESEND_FROM"] = resend_from
 
 
 _apply_render_email_fallback()
