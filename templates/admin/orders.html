@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Orders - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-shopping-bag me-2"></i>All Orders</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Status Filter -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary {% if current_status == 'all' %}active{% endif %}">All</a>
+                                <a href="{{ url_for('admin.orders', status='pending') }}" class="btn btn-outline-secondary {% if current_status == 'pending' %}active{% endif %}">Pending</a>
+                                <a href="{{ url_for('admin.orders', status='confirmed') }}" class="btn btn-outline-secondary {% if current_status == 'confirmed' %}active{% endif %}">Confirmed</a>
+                                <a href="{{ url_for('admin.orders', status='delivered') }}" class="btn btn-outline-secondary {% if current_status == 'delivered' %}active{% endif %}">Delivered</a>
+                                <a href="{{ url_for('admin.orders', status='cancelled') }}" class="btn btn-outline-secondary {% if current_status == 'cancelled' %}active{% endif %}">Cancelled</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Customer</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>POD</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.buyer.first_name }} {{ order.buyer.last_name }}</td>
+                                    <td>{{ order.total_amount|currency }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if (order|order_status) == 'delivered' %}success{% elif (order|order_status) == 'cancelled' %}danger{% elif (order|order_status) == 'pending' %}warning{% else %}info{% endif %}">
+                                            {{ order|order_status_label }}
+                                        </span>
+                                    </td>
+                                    <td>{{ order.created_at|ph_date('%m/%d/%Y') }}</td>
+                                    <td>
+                                        {% if order.delivery and order.delivery.pod_image_url %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#adminPodModal"
+                                                data-pod-src="{{ url_for('static', filename=order.delivery.pod_image_url) }}"
+                                                data-pod-remarks="{{ (order.delivery.pod_remarks or '')|e }}">View</button>
+                                        {% else %}
+                                        <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <h5>No orders found</h5>
+                        <p class="text-muted">
+                            {% if current_status == 'all' %}
+                            No orders in the system yet.
+                            {% else %}
+                            No orders with status "{{ current_status.title() }}".
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="adminPodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Proof of delivery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="adminPodImg" src="" class="img-fluid rounded border" alt="POD">
+                <p class="text-start small text-muted mt-3 mb-0 d-none" id="adminPodRemarks"></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('adminPodModal')?.addEventListener('show.bs.modal', function (e) {
+    var b = e.relatedTarget;
+    if (!b) return;
+    document.getElementById('adminPodImg').src = b.getAttribute('data-pod-src') || '';
+    var r = b.getAttribute('data-pod-remarks') || '';
+    var el = document.getElementById('adminPodRemarks');
+    if (r) { el.textContent = 'Remarks: ' + r; el.classList.remove('d-none'); }
+    else { el.textContent = ''; el.classList.add('d-none'); }
+});
+</script>
+{% endblock %}

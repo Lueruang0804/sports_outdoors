@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter"></i> Shop by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('main.products') }}" class="list-group-item list-group-item-action {% if not current_category %}active{% endif %}">
+                            <i class="fas fa-th-large me-2"></i>All Categories
+                        </a>
+                        {% for category in categories %}
+                        <a href="{{ url_for('main.products', category=category) }}" class="list-group-item list-group-item-action {% if current_category == category %}active{% endif %}">
+                            <i class="fas fa-{% if category == 'Fitness Equipment' %}dumbbell{% elif category == 'Camping & Hiking Gear' %}campground{% elif category == 'Sports Apparel' %}tshirt{% elif category == 'Cycling & Bikes' %}bicycle{% elif category == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} me-2"></i>
+                            {{ category }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <!-- Search and Filter Bar -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <form method="GET" class="d-flex">
+                                <input type="text" name="search" class="form-control me-2" placeholder="Search products..." value="{{ current_search }}">
+                                {% if current_category %}
+                                <input type="hidden" name="category" value="{{ current_category }}">
+                                {% endif %}
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <form method="GET" class="d-flex">
+                                    {% if current_search %}
+                                    <input type="hidden" name="search" value="{{ current_search }}">
+                                    {% endif %}
+                                    {% if current_category %}
+                                    <input type="hidden" name="category" value="{{ current_category }}">
+                                    {% endif %}
+                                    <select name="sort" class="form-select" onchange="this.form.submit()" style="width: auto;">
+                                        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest</option>
+                                        <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                        <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Name: A to Z</option>
+                                    </select>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            {% if products.items %}
+            <div class="row">
+                {% for product in products.items %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card product-card h-100">
+                        {% if product.image_url %}
+                        <img src="{{ url_for('static', filename=product.image_url) }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text text-muted">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="h5 text-success mb-0">{{ product.price|currency }}</span>
+                                    <small class="text-muted">{{ product.category }}</small>
+                                </div>
+                                {% if product.stock_quantity <= 0 %}
+                                <span class="badge bg-danger mb-2">Out of Stock</span>
+                                {% endif %}
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-outline-success flex-fill">View Details</a>
+                                    {% if session.user_id and session.user_type == 'buyer' %}
+                                    {% if product.stock_quantity > 0 %}
+                                    <button class="btn btn-success" onclick="addToCart({{ product.id }})">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-secondary" disabled title="Out of stock">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-outline-success" id="wishlist-btn-{{ product.id }}" onclick="toggleWishlist({{ product.id }})">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if products.pages > 1 %}
+            <nav aria-label="Products pagination">
+                <ul class="pagination justify-content-center">
+                    {% if products.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, category=current_category, search=current_search, sort=current_sort) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in products.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != products.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.products', page=page_num, category=current_category, search=current_search, sort=current_sort) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, category=current_category, search=current_search, sort=current_sort) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4>No products found</h4>
+                <p class="text-muted">Try adjusting your search or filter criteria.</p>
+                <a href="{{ url_for('main.products') }}" class="btn btn-success">View All Products</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId) {
+    fetch('{{ url_for("main.add_to_cart") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Item added to cart successfully!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function toggleWishlist(productId) {
+    const button = document.getElementById(`wishlist-btn-${productId}`);
+    const icon = button.querySelector('i');
+    
+    // Check current wishlist status
+    fetch('{{ url_for("buyer.check_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.is_in_wishlist) {
+                // Remove from wishlist
+                removeFromWishlist(productId, button, icon);
+            } else {
+                // Add to wishlist
+                addToWishlist(productId, button, icon);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function addToWishlist(productId, button, icon) {
+    fetch('{{ url_for("buyer.add_to_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-success');
+            icon.classList.add('text-white');
+            showNotification('Product added to wishlist!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function removeFromWishlist(productId, button, icon) {
+    fetch('{{ url_for("buyer.remove_from_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-success');
+            icon.classList.remove('text-white');
+            showNotification('Product removed from wishlist!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+// Initialize wishlist button states on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if session.user_id and session.user_type == 'buyer' %}
+    {% for product in products %}
+    const productId{{ product.id }} = {{ product.id }};
+    const button{{ product.id }} = document.getElementById(`wishlist-btn-${productId{{ product.id }}}`);
+    if (button{{ product.id }}) {
+        const icon{{ product.id }} = button{{ product.id }}.querySelector('i');
+        
+        // Check if product is in wishlist
+        fetch('{{ url_for("buyer.check_wishlist") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId{{ product.id }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.is_in_wishlist) {
+                button{{ product.id }}.classList.remove('btn-outline-success');
+                button{{ product.id }}.classList.add('btn-success');
+                icon{{ product.id }}.classList.add('text-white');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking wishlist status:', error);
+        });
+    }
+    {% endfor %}
+    {% endif %}
+});
+</script>
+{% endblock %}

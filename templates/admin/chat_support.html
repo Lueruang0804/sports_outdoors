@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Support - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-comments me-2"></i>Chat Support</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0" style="height: 600px;">
+                        <!-- Users List -->
+                        <div class="col-md-4 border-end">
+                            <div class="p-3 border-bottom">
+                                <h6 class="mb-0"><i class="fas fa-users me-2"></i>All Users</h6>
+                            </div>
+                            <div class="p-2" style="height: 550px; overflow-y: auto;">
+                                {% for user_data in users_with_time %}
+                                {% set user = user_data.user %}
+                                {% set time_diff = user_data.time_diff %}
+                                <div class="d-flex align-items-center p-2 border-bottom user-item" data-user-id="{{ user.id }}" style="cursor: pointer;">
+                                    <div class="me-3 position-relative">
+                                        {% if user.profile_picture %}
+                                        <img src="{{ url_for('static', filename=user.profile_picture) }}" alt="{{ user.first_name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <!-- Online/Offline indicator -->
+                                        <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-{% if time_diff < 300 %}success{% else %}secondary{% endif %} border border-light rounded-circle" style="width: 12px; height: 12px;">
+                                            <span class="visually-hidden">{% if time_diff < 300 %}Online{% else %}Offline{% endif %}</span>
+                                        </span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">{{ user.first_name }} {{ user.last_name }}</h6>
+                                        <small class="text-muted">{{ user.user_type.title() }}</small>
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if time_diff < 60 %}
+                                                Just now
+                                            {% elif time_diff < 3600 %}
+                                                {{ (time_diff / 60)|int }}m ago
+                                            {% elif time_diff < 86400 %}
+                                                {{ (time_diff / 3600)|int }}h ago
+                                            {% else %}
+                                                {{ (time_diff / 86400)|int }}d ago
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-{% if user.is_approved %}success{% else %}warning{% endif %}">
+                                            {% if user.is_approved %}Approved{% else %}Pending{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Area -->
+                        <div class="col-md-8">
+                            {% if current_room %}
+                            <!-- Chat Header -->
+                            <div class="p-3 border-bottom bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        {% if chat_user.profile_picture %}
+                                        <img src="{{ url_for('static', filename=chat_user.profile_picture) }}" alt="{{ chat_user.first_name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">{{ chat_user.first_name }} {{ chat_user.last_name }}</h6>
+                                        <small class="text-muted">{{ chat_user.user_type.title() }} • {{ chat_user.email }}</small>
+                                        <br>
+                                        {% if chat_user_time_diff is not none %}
+                                        <small class="text-{% if chat_user_time_diff < 300 %}success{% else %}muted{% endif %}">
+                                            <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
+                                            {% if chat_user_time_diff < 300 %}
+                                                Online now
+                                            {% elif chat_user_time_diff < 3600 %}
+                                                Last seen {{ (chat_user_time_diff / 60)|int }}m ago
+                                            {% elif chat_user_time_diff < 86400 %}
+                                                Last seen {{ (chat_user_time_diff / 3600)|int }}h ago
+                                            {% else %}
+                                                Last seen {{ (chat_user_time_diff / 86400)|int }}d ago
+                                            {% endif %}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-{% if chat_user.is_approved %}success{% else %}warning{% endif %}">
+                                            {% if chat_user.is_approved %}Approved{% else %}Pending{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Messages Area -->
+                            <div id="messages-container" class="p-3" style="height: 450px; overflow-y: auto;">
+                                {% for message in messages %}
+                                <div class="mb-3 {% if message.sender.user_type == 'admin' %}text-end{% endif %}">
+                                    <div class="d-flex {% if message.sender.user_type == 'admin' %}justify-content-end{% endif %}">
+                                        {% if message.sender.user_type != 'admin' %}
+                                        <div class="me-2">
+                                            {% if message.sender.profile_picture %}
+                                            <img src="{{ url_for('static', filename=message.sender.profile_picture) }}" alt="{{ message.sender.first_name }}" class="rounded-circle" style="width: 30px; height: 30px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user text-muted" style="font-size: 12px;"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                        <div class="{% if message.sender.user_type == 'admin' %}me-2{% endif %}">
+                                            <div class="p-2 rounded {% if message.sender.user_type == 'admin' %}bg-primary text-white{% else %}bg-light{% endif %}" style="max-width: 300px;">
+                                                <div class="mb-1">{{ message.message }}</div>
+                                                <small class="{% if message.sender.user_type == 'admin' %}text-white-50{% else %}text-muted{% endif %}">
+                                                    {{ message.created_at|ph_time('%H:%M') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        {% if message.sender.user_type == 'admin' %}
+                                        <div class="ms-2">
+                                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user-shield text-white" style="font-size: 12px;"></i>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Message Input -->
+                            <div class="p-3 border-top">
+                                <form id="message-form" class="d-flex">
+                                    <input type="hidden" id="current-room-id" value="{{ current_room.id }}">
+                                    <input type="text" id="message-input" class="form-control me-2" placeholder="Type your message..." required>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <!-- No Chat Selected -->
+                            <div class="d-flex align-items-center justify-content-center h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                    <h5>Select a user to start chatting</h5>
+                                    <p class="text-muted">Choose a user from the list to begin a support conversation</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle user selection
+    document.querySelectorAll('.user-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            startChatWithUser(userId);
+        });
+    });
+    
+    // Handle message form submission
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+    }
+    
+    // Auto-refresh messages every 3 seconds
+    setInterval(function() {
+        const currentRoomId = document.getElementById('current-room-id');
+        if (currentRoomId && currentRoomId.value) {
+            loadMessages(currentRoomId.value);
+        }
+    }, 3000);
+});
+
+function startChatWithUser(userId) {
+    fetch('/admin/chat-support/start-chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: userId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to chat room
+            window.location.href = `/admin/chat-support?room_id=${data.room_id}`;
+        } else {
+            alert('Error starting chat: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting chat');
+    });
+}
+
+function sendMessage() {
+    const roomId = document.getElementById('current-room-id').value;
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
+    
+    if (!message) return;
+    
+    fetch('/admin/chat-support/send-message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            room_id: roomId,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageInput.value = '';
+            loadMessages(roomId);
+        } else {
+            alert('Error sending message: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending message');
+    });
+}
+
+function loadMessages(roomId) {
+    fetch(`/admin/chat-support/get-messages/${roomId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateMessagesDisplay(data.messages);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading messages:', error);
+    });
+}
+
+function updateMessagesDisplay(messages) {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-3 ${message.is_admin ? 'text-end' : ''}`;
+        
+        const time = new Date(message.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        messageDiv.innerHTML = `
+            <div class="d-flex ${message.is_admin ? 'justify-content-end' : ''}">
+                ${!message.is_admin ? `
+                <div class="me-2">
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="fas fa-user text-muted" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="${message.is_admin ? 'me-2' : ''}">
+                    <div class="p-2 rounded ${message.is_admin ? 'bg-primary text-white' : 'bg-light'}" style="max-width: 300px;">
+                        <div class="mb-1">${message.message}</div>
+                        <small class="${message.is_admin ? 'text-white-50' : 'text-muted'}">
+                            ${time}
+                        </small>
+                    </div>
+                </div>
+                ${message.is_admin ? `
+                <div class="ms-2">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="fas fa-user-shield text-white" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+    });
+    
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+</script>
+{% endblock %}

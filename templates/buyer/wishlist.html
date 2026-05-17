@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Wishlist - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Buyer Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('buyer.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>My Orders
+                        </a>
+                        <a href="{{ url_for('buyer.wishlist') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-heart me-2"></i>Wishlist
+                        </a>
+                        <a href="{{ url_for('buyer.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('buyer.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-heart me-2"></i>My Wishlist</h4>
+                </div>
+                <div class="card-body">
+                    {% if wishlist_items %}
+                    <div class="row">
+                        {% for item in wishlist_items %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card product-card h-100">
+                                {% if item.image_url %}
+                                {# image_url in DB is usually uploads/products/...; do not prefix uploads/ again #}
+                                <img src="{{ url_for('static', filename=(item.image_url if item.image_url.startswith('uploads/') else 'uploads/' ~ item.image_url)) }}" class="card-img-top" alt="{{ item.name }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title">{{ item.name }}</h6>
+                                    <p class="card-text text-muted small">{{ item.description[:80] }}...</p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="h6 text-success mb-0">{{ item.price|currency }}</span>
+                                            <span class="badge bg-info">{{ item.category }}</span>
+                                        </div>
+                                        {% if item.stock_quantity <= 0 %}
+                                        <span class="badge bg-danger mb-2">Out of Stock</span>
+                                        {% endif %}
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ url_for('main.product_detail', product_id=item.id) }}" class="btn btn-outline-success btn-sm flex-fill">View Details</a>
+                                            {% if item.stock_quantity > 0 %}
+                                            <button class="btn btn-success btn-sm" onclick="addToCart({{ item.id }})">
+                                                <i class="fas fa-cart-plus"></i>
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-secondary btn-sm" disabled title="Out of stock">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-danger btn-sm" onclick="removeFromWishlist({{ item.id }})">
+                                                <i class="fas fa-heart-broken"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                        <h5>Your wishlist is empty</h5>
+                        <p class="text-muted">Add products to your wishlist to save them for later!</p>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-success">Browse Products</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId) {
+    fetch('{{ url_for("main.add_to_cart") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Item added to cart successfully!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function removeFromWishlist(productId) {
+    fetch('{{ url_for("buyer.remove_from_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Product removed from wishlist!', 'success');
+            // Reload the page to update the wishlist
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+</script>
+{% endblock %}

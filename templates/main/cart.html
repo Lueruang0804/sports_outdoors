@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-shopping-cart"></i> Shopping Cart</h4>
+                </div>
+                <div class="card-body">
+                    {% if cart_items %}
+                    <div class="d-flex justify-content-end mb-3">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-success" id="selectAllBtn">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary" id="unselectAllBtn">Unselect All</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart_items %}
+                                <tr class="cart-item">
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input cart-select"
+                                            value="{{ item.id }}"
+                                            data-line-total="{% if item.discount_percentage > 0 %}{{ item.discounted_price * item.quantity }}{% else %}{{ item.product.price * item.quantity }}{% endif %}"
+                                            checked
+                                        >
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.product.image_url %}
+                                            <img src="{{ url_for('static', filename=item.product.image_url) }}" alt="{{ item.product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                            {% else %}
+                                            <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">{{ item.product.name }}</h6>
+                                                <small class="text-muted d-block">Shop: {% if item.product.seller.first_name or item.product.seller.last_name %}{{ item.product.seller.first_name }} {{ item.product.seller.last_name }}{% else %}{{ item.product.seller.email }}{% endif %}</small>
+                                                <small class="text-muted">{{ item.product.category }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.discount_percentage > 0 %}
+                                            <div>
+                                                <span class="text-decoration-line-through text-muted">{{ item.product.price|currency }}</span>
+                                                <br>
+                                                <span class="text-success fw-bold">{{ item.discounted_price|currency }}</span>
+                                                <br>
+                                                <small class="badge bg-danger">{{ item.discount_percentage }}% OFF</small>
+                                            </div>
+                                        {% else %}
+                                            {{ item.product.price|currency }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="input-group" style="width: 120px;">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="updateQuantity({{ item.id }}, {{ item.quantity - 1 }})">-</button>
+                                            <input type="number" class="form-control form-control-sm text-center" value="{{ item.quantity }}" min="1" max="{{ item.product.stock_quantity }}" onchange="updateQuantity({{ item.id }}, this.value)">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="updateQuantity({{ item.id }}, {{ item.quantity + 1 }})">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.discount_percentage > 0 %}
+                                            <span class="text-success fw-bold">{{ (item.discounted_price * item.quantity)|currency }}</span>
+                                        {% else %}
+                                            {{ (item.product.price * item.quantity)|currency }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="removeFromCart({{ item.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h4>Your cart is empty</h4>
+                        <p class="text-muted">Add some products to get started!</p>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-success">
+                            <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            {% if cart_items %}
+            <div class="card">
+                <div class="card-header">
+                    <h5>Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    {% if total_savings > 0 %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-success">You Save:</span>
+                        <span class="text-success fw-bold">{{ total_savings|currency }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="selectedSubtotal">{{ total|currency }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping Fee:</span>
+                        <span>₱50.00</span>
+                    </div>
+                    <hr>
+                    <div class="mb-3 border rounded p-3 bg-light">
+                        <label class="form-label fw-semibold mb-1"><i class="fas fa-tag me-1"></i>Store promo code</label>
+                        <p class="small text-muted mb-2 mb-md-2">Enter the code from an active admin store offer, then apply before checkout.</p>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control text-uppercase font-monospace" id="storePromoCodeInput" placeholder="e.g. SUMMER25" autocomplete="off" maxlength="64">
+                            <button type="button" class="btn btn-outline-success" id="applyStorePromoBtn">Apply</button>
+                        </div>
+                        <div class="small mt-2" id="storePromoMsg"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong id="selectedGrandTotal">{{ (total + 50)|currency }}</strong>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('buyer.place_order') }}">
+                        <input type="hidden" id="selectedCartItemsInput">
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="cash_on_delivery">Cash on Delivery</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100" id="placeOrderButton">
+                            <i class="fas fa-credit-card me-2"></i>Place Order
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('main.products') }}" class="text-decoration-none">
+                            <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshCheckoutSelection() {
+    const checkboxes = Array.from(document.querySelectorAll('.cart-select'));
+    const checked = checkboxes.filter(cb => cb.checked);
+    const selectedIds = checked.map(cb => cb.value);
+    const subtotal = checked.reduce((sum, cb) => sum + Number(cb.dataset.lineTotal || 0), 0);
+    const shipping = checked.length > 0 ? 50 : 0;
+    const grandTotal = subtotal + shipping;
+
+    const selectedInput = document.getElementById('selectedCartItemsInput');
+    const subtotalLabel = document.getElementById('selectedSubtotal');
+    const grandTotalLabel = document.getElementById('selectedGrandTotal');
+    const placeOrderButton = document.getElementById('placeOrderButton');
+
+    if (selectedInput) {
+        // Comma-separated for easier backend split via getlist fallback below.
+        selectedInput.value = selectedIds.join(',');
+    }
+    if (subtotalLabel) subtotalLabel.textContent = formatPeso(subtotal);
+    if (grandTotalLabel) grandTotalLabel.textContent = formatPeso(grandTotal);
+    if (placeOrderButton) placeOrderButton.disabled = checked.length === 0;
+}
+
+function updateQuantity(cartItemId, quantity) {
+    if (quantity < 1) {
+        removeFromCart(cartItemId);
+        return;
+    }
+    
+    fetch('{{ url_for("main.update_cart") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            cart_item_id: cartItemId,
+            quantity: quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function removeFromCart(cartItemId) {
+    if (confirm('Are you sure you want to remove this item from your cart?')) {
+        fetch('{{ url_for("main.remove_from_cart") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                cart_item_id: cartItemId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.cart-select');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const unselectAllBtn = document.getElementById('unselectAllBtn');
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', refreshCheckoutSelection);
+    });
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+            });
+            refreshCheckoutSelection();
+        });
+    }
+
+    if (unselectAllBtn) {
+        unselectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            refreshCheckoutSelection();
+        });
+    }
+
+    const form = document.querySelector('form[action="{{ url_for("buyer.place_order") }}"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const checked = document.querySelectorAll('.cart-select:checked');
+            if (checked.length === 0) {
+                e.preventDefault();
+                showNotification('Please select at least one item to checkout.', 'error');
+            } else {
+                // Convert hidden comma string to repeated fields expected by backend
+                const selectedInput = document.getElementById('selectedCartItemsInput');
+                const selectedIds = (selectedInput?.value || '').split(',').filter(Boolean);
+                document.querySelectorAll('input[name="selected_cart_items[]"]').forEach(el => el.remove());
+                selectedIds.forEach(id => {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'selected_cart_items';
+                    hidden.value = id;
+                    form.appendChild(hidden);
+                });
+            }
+        });
+    }
+
+    const applyPromoBtn = document.getElementById('applyStorePromoBtn');
+    if (applyPromoBtn) {
+        applyPromoBtn.addEventListener('click', function() {
+            const input = document.getElementById('storePromoCodeInput');
+            const msg = document.getElementById('storePromoMsg');
+            if (!input || !msg) return;
+            const code = (input.value || '').trim();
+            if (!code) {
+                msg.textContent = 'Enter a promo code.';
+                msg.className = 'small mt-2 text-danger';
+                return;
+            }
+            msg.textContent = 'Applying…';
+            msg.className = 'small mt-2 text-muted';
+            fetch('{{ url_for("main.apply_store_promo_code") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ promo_code: code }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    msg.textContent = data.message || 'Could not apply code.';
+                    msg.className = 'small mt-2 text-danger';
+                }
+            })
+            .catch(() => {
+                msg.textContent = 'Network error. Try again.';
+                msg.className = 'small mt-2 text-danger';
+            });
+        });
+    }
+
+    refreshCheckoutSelection();
+});
+</script>
+{% endblock %}

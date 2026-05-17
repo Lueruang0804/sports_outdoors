@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Orders - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {% include 'includes/dashboard_sidebar.html' %}
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-shopping-bag me-2"></i>Orders</h4>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Rider</th>
+                                    <th>Date</th>
+                                    <th>POD</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.buyer.first_name }} {{ order.buyer.last_name }}</td>
+                                    <td>{{ order.items|length }} item(s)</td>
+                                    <td>{{ order.total_amount|currency }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if (order|order_status) == 'delivered' %}success{% elif (order|order_status) == 'cancelled' %}danger{% elif (order|order_status) == 'pending' %}warning{% else %}info{% endif %}">
+                                            {{ order|order_status_label }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if order.delivery and order.delivery.rider %}
+                                            <span class="badge bg-success">{{ order.delivery.rider.first_name }} {{ order.delivery.rider.last_name }}</span>
+                                        {% elif order.status in ['confirmed', 'preparing'] %}
+                                            <form method="POST" action="{{ url_for('seller.assign_rider', order_id=order.id) }}" class="d-inline">
+                                                <select name="rider_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                    <option value="">Select Rider</option>
+                                                    {% for rider in available_riders %}
+                                                    <option value="{{ rider.id }}">{{ rider.first_name }} {{ rider.last_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.created_at|ph_date('%m/%d/%Y') }}</td>
+                                    <td>
+                                        {% if order.delivery and order.delivery.pod_image_url %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#sellerPodModal"
+                                                data-pod-src="{{ url_for('static', filename=order.delivery.pod_image_url) }}"
+                                                data-pod-remarks="{{ (order.delivery.pod_remarks or '')|e }}">View</button>
+                                        {% else %}
+                                        <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.status in ['pending', 'confirmed'] %}
+                                        <form method="POST" action="{{ url_for('seller.update_order_status', order_id=order.id) }}" class="d-inline">
+                                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>Confirm</option>
+                                                <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>Preparing</option>
+                                                <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Shipped</option>
+                                            </select>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <h5>No orders yet</h5>
+                        <p class="text-muted">Orders will appear here once customers start buying your products.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sellerPodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Proof of delivery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="sellerPodImg" src="" class="img-fluid rounded border" alt="POD">
+                <p class="text-start small text-muted mt-3 mb-0 d-none" id="sellerPodRemarks"></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('sellerPodModal')?.addEventListener('show.bs.modal', function (e) {
+    var b = e.relatedTarget;
+    if (!b) return;
+    document.getElementById('sellerPodImg').src = b.getAttribute('data-pod-src') || '';
+    var r = b.getAttribute('data-pod-remarks') || '';
+    var el = document.getElementById('sellerPodRemarks');
+    if (r) { el.textContent = 'Remarks: ' + r; el.classList.remove('d-none'); }
+    else { el.textContent = ''; el.classList.add('d-none'); }
+});
+</script>
+{% endblock %}

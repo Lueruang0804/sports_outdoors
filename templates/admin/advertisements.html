@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Advertisements - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-bullhorn me-2"></i>Advertisements</h4>
+                    <a href="{{ url_for('admin.add_advertisement') }}" class="btn btn-success">
+                        <i class="fas fa-plus me-2"></i>Add Advertisement
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if advertisements %}
+                    <div class="row">
+                        {% for ad in advertisements %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="card-title">{{ ad.title }}</h6>
+                                            <small class="text-muted">{{ ad.created_at|ph_date('%B %d, %Y') }}</small>
+                                        </div>
+                                        <span class="badge bg-{% if ad.is_active %}success{% else %}secondary{% endif %}">
+                                            {{ 'Active' if ad.is_active else 'Inactive' }}
+                                        </span>
+                                    </div>
+                                    
+                                    {% if ad.image_url %}
+                                    <img src="{{ url_for('static', filename=ad.image_url) }}" class="img-fluid rounded mb-3" alt="{{ ad.title }}">
+                                    {% endif %}
+                                    
+                                    <p class="card-text">{{ ad.description[:100] }}{% if ad.description|length > 100 %}...{% endif %}</p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-success"><strong>{{ ad.discount_percentage }}% OFF</strong></span>
+                                        {% if ad.promo_code %}
+                                        <span class="badge bg-dark font-monospace">Code: {{ ad.promo_code }}</span>
+                                        {% endif %}
+                                        <div class="btn-group btn-group-sm">
+                                            <form method="POST" action="{{ url_for('admin.toggle_advertisement', ad_id=ad.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-{% if ad.is_active %}warning{% else %}success{% endif %}" title="{% if ad.is_active %}Deactivate{% else %}Activate{% endif %} Advertisement">
+                                                    <i class="fas fa-{% if ad.is_active %}pause{% else %}play{% endif %}"></i>
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="{{ url_for('admin.delete_advertisement', ad_id=ad.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this advertisement? This action cannot be undone.');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete Advertisement">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <h5>No advertisements yet</h5>
+                        <p class="text-muted">Create your first advertisement to promote products and attract customers.</p>
+                        <a href="{{ url_for('admin.add_advertisement') }}" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add Advertisement
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

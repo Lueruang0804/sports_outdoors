@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Buyer Dashboard - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {% include 'includes/dashboard_sidebar.html' %}
+        
+        <div class="col-md-9">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-primary text-white mx-auto">
+                                <i class="fas fa-shopping-bag"></i>
+                            </div>
+                            <h4>{{ recent_orders|length }}</h4>
+                            <p class="text-muted">Total Orders</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-success text-white mx-auto">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <h4>{{ cart_count }}</h4>
+                            <p class="text-muted">Items in Cart</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-warning text-white mx-auto">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <h4>{{ unread_notifications }}</h4>
+                            <p class="text-muted">Unread Notifications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock me-2"></i>Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.created_at|ph_date('%B %d, %Y') }}</td>
+                                    <td>{{ order.total_amount|currency }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if (order|order_status) == 'delivered' %}success{% elif (order|order_status) == 'cancelled' %}danger{% elif (order|order_status) == 'pending' %}warning{% else %}info{% endif %}">
+                                            {{ order|order_status_label }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('buyer.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('buyer.orders') }}" class="btn btn-success">View All Orders</a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <h5>No orders yet</h5>
+                        <p class="text-muted">Start shopping to see your orders here!</p>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-success">Browse Products</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

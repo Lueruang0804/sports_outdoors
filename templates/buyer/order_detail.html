@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Order Details - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4 buyer-order-detail-page">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Buyer Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('buyer.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>My Orders
+                        </a>
+                        <a href="{{ url_for('buyer.wishlist') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-heart me-2"></i>Wishlist
+                        </a>
+                        <a href="{{ url_for('buyer.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('buyer.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            {% set ost = order|order_status %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-shopping-bag me-2"></i>Order Details</h4>
+                    <span class="badge bg-{% if ost == 'delivered' %}success{% elif ost == 'cancelled' %}danger{% elif ost == 'pending' %}warning{% else %}info{% endif %} fs-6">
+                        {{ order|order_status_label }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Order Number:</strong></td>
+                                    <td>{{ order.order_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Order Date:</strong></td>
+                                    <td>{{ order.created_at|datetime('%B %d, %Y at %I:%M %p') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment Method:</strong></td>
+                                    <td>{{ order.payment_method.replace('_', ' ').title() }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Amount:</strong></td>
+                                    <td class="h5 text-success">{{ order.total_amount|currency }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Shipping Address</h6>
+                            <p>{{ order.shipping_address }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6><i class="fas fa-truck me-2"></i>Delivery &amp; Rider</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Delivery status:</strong></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ delivery_status_label }}</span>
+                                        {% if delivery and delivery.updated_at %}
+                                        <small class="text-muted d-block mt-1">Updated {{ delivery.updated_at|datetime }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if rider_user %}
+                                <tr>
+                                    <td><strong>Assigned rider:</strong></td>
+                                    <td>
+                                        {{ rider_user.first_name }} {{ rider_user.last_name }}
+                                        {% if rider_user.contact_number %}
+                                        <br><a href="tel:{{ rider_user.contact_number }}" class="text-decoration-none"><i class="fas fa-phone me-1"></i>{{ rider_user.contact_number }}</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td><strong>Assigned rider:</strong></td>
+                                    <td class="text-muted">Not assigned yet — we’ll notify you when a rider picks up your order.</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="small text-muted mb-2">Order progress</p>
+                            <ul class="list-unstyled small mb-0">
+                                {% for step in timeline %}
+                                <li class="mb-2">
+                                    {% if step.completed %}
+                                    <i class="fas fa-check-circle text-success me-2"></i><strong>{{ step.title }}</strong>
+                                    {% else %}
+                                    <i class="far fa-circle text-muted me-2"></i>{{ step.title }}
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% if ost == 'delivered' %}
+                    <hr class="my-3">
+                    <h6 class="mb-2"><i class="fas fa-camera text-success me-2"></i>Proof of delivery</h6>
+                    {% if proof_of_delivery and proof_of_delivery.image_url %}
+                    {% set imgu = proof_of_delivery.image_url %}
+                    <div class="alert alert-light border mb-0">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div>
+                                {% if proof_of_delivery.remarks %}
+                                <p class="small text-muted mb-0">{{ proof_of_delivery.remarks }}</p>
+                                {% else %}
+                                <p class="small text-muted mb-0">Your rider uploaded a delivery confirmation photo.</p>
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#buyerPodModal">
+                                View POD image
+                            </button>
+                        </div>
+                    </div>
+                    {% elif proof_of_delivery and proof_of_delivery.remarks %}
+                    <div class="alert alert-light border mb-0">
+                        <p class="mb-1"><strong>Rider notes</strong></p>
+                        <p class="small text-muted mb-0">{{ proof_of_delivery.remarks }}</p>
+                        <p class="small text-muted mb-0 mt-2">No delivery photo on file.</p>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">No proof-of-delivery photo was uploaded for this order. If you expected a delivery photo, contact support with your order number.</p>
+                    {% endif %}
+                    {% endif %}
+                    
+                    <hr>
+                    {% if pickup_shops_summary %}
+                    <p class="small text-muted mb-2"><strong>Shops on this order:</strong> {{ pickup_shops_summary }}</p>
+                    {% endif %}
+                    <h6>Order Items</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.product.image_url %}
+                                            <img src="{{ url_for('static', filename=item.product.image_url) }}" alt="{{ item.product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                            {% else %}
+                                            <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">{{ item.product.name }}</h6>
+                                                <small class="text-muted d-block">Shop: {% if item.product.seller.first_name or item.product.seller.last_name %}{{ item.product.seller.first_name }} {{ item.product.seller.last_name }}{% else %}{{ item.product.seller.email }}{% endif %}</small>
+                                                <small class="text-muted">{{ item.product.category }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.price|currency }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ (item.price * item.quantity)|currency }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Rating and Review Section for Delivered Orders -->
+                    {% if ost == 'delivered' %}
+                    <hr>
+                    <h6><i class="fas fa-star me-2"></i>Rate & Review Products</h6>
+                    <div class="row">
+                        {% for item in order.items %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if item.product.image_url %}
+                                        <img src="{{ url_for('static', filename=item.product.image_url) }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                        {% else %}
+                                        <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 4px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <small class="text-muted d-block">Shop: {% if item.product.seller.first_name or item.product.seller.last_name %}{{ item.product.seller.first_name }} {{ item.product.seller.last_name }}{% else %}{{ item.product.seller.email }}{% endif %}</small>
+                                            <small class="text-muted">Quantity: {{ item.quantity }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Check if user already reviewed this product -->
+                                    {% set existing_review = item.product.reviews|selectattr('user_id', 'equalto', session.user_id)|first %}
+                                    
+                                    {% if existing_review %}
+                                    <div class="alert alert-info">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <strong>Your Rating:</strong>
+                                            <div class="ms-2">
+                                                {% for i in range(1, 6) %}
+                                                    {% if i <= existing_review.rating %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-muted"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% if existing_review.comment %}
+                                        <p class="mb-0"><strong>Your Comment:</strong> {{ existing_review.comment }}</p>
+                                        {% endif %}
+                                        <small class="text-muted">Reviewed on {{ existing_review.created_at|ph_date('%B %d, %Y') }}</small>
+                                    </div>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('buyer.review_product', product_id=item.product.id) }}">
+                                        <div class="mb-3">
+                                            <label class="form-label">Rating:</label>
+                                            <div class="rating-input">
+                                                <input type="radio" name="rating" value="5" id="rating5_{{ item.product.id }}" required>
+                                                <label for="rating5_{{ item.product.id }}"><i class="fas fa-star"></i></label>
+                                                <input type="radio" name="rating" value="4" id="rating4_{{ item.product.id }}">
+                                                <label for="rating4_{{ item.product.id }}"><i class="fas fa-star"></i></label>
+                                                <input type="radio" name="rating" value="3" id="rating3_{{ item.product.id }}">
+                                                <label for="rating3_{{ item.product.id }}"><i class="fas fa-star"></i></label>
+                                                <input type="radio" name="rating" value="2" id="rating2_{{ item.product.id }}">
+                                                <label for="rating2_{{ item.product.id }}"><i class="fas fa-star"></i></label>
+                                                <input type="radio" name="rating" value="1" id="rating1_{{ item.product.id }}">
+                                                <label for="rating1_{{ item.product.id }}"><i class="fas fa-star"></i></label>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="comment_{{ item.product.id }}" class="form-label">Comment (Optional):</label>
+                                            <textarea class="form-control" id="comment_{{ item.product.id }}" name="comment" rows="3" placeholder="Share your experience with this product..."></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-star me-1"></i>Submit Review
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <a href="{{ url_for('buyer.orders') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Orders
+                        </a>
+                        
+                        <div class="btn-group">
+                            {% if order.status in ['pending', 'confirmed'] %}
+                            <form method="POST" action="{{ url_for('buyer.cancel_order', order_id=order.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                    <i class="fas fa-times me-2"></i>Cancel Order
+                                </button>
+                            </form>
+                            {% elif ost == 'delivered' %}
+                            <form method="POST" action="{{ url_for('buyer.request_refund', order_id=order.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Are you sure you want to request a refund for this order?')">
+                                    <i class="fas fa-undo me-2"></i>Request Refund
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if ost == 'delivered' and proof_of_delivery and proof_of_delivery.image_url %}
+    {% set imgu = proof_of_delivery.image_url %}
+    <div class="modal fade" id="buyerPodModal" tabindex="-1" aria-labelledby="buyerPodModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="buyerPodModalLabel">Proof of delivery</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center bg-light">
+                    <div class="pod-modal-image-wrap mx-auto">
+                        {% if imgu.startswith('http://') or imgu.startswith('https://') %}
+                        <img src="{{ imgu }}" class="rounded border pod-modal-img" alt="Proof of delivery" decoding="async">
+                        {% else %}
+                        <img src="{{ url_for('static', filename=imgu) }}" class="rounded border pod-modal-img" alt="Proof of delivery" decoding="async">
+                        {% endif %}
+                    </div>
+                    {% if proof_of_delivery.remarks %}
+                    <p class="text-muted small mt-3 mb-0 text-start">{{ proof_of_delivery.remarks }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Global .card:hover { transform } breaks position:fixed modals inside cards (POD flicker). */
+.buyer-order-detail-page .card:hover {
+    transform: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.pod-modal-image-wrap {
+    max-height: min(80vh, 900px);
+    line-height: 0;
+}
+.buyer-order-detail-page .pod-modal-img {
+    max-width: 100%;
+    max-height: min(75vh, 820px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    vertical-align: middle;
+}
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating-input input[type="radio"] {
+    display: none;
+}
+
+.rating-input label {
+    font-size: 1.5em;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-right: 5px;
+}
+
+.rating-input label:hover,
+.rating-input label:hover ~ label,
+.rating-input input[type="radio"]:checked ~ label {
+    color: #ffc107;
+}
+
+.rating-input input[type="radio"]:checked + label {
+    color: #ffc107;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Advertisement - Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3">
+            {% include 'includes/dashboard_sidebar.html' %}
+        </div>
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-edit me-2"></i>Edit Advertisement</h2>
+                <a href="{{ url_for('seller_ad.list_advertisements') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Advertisements
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Product</label>
+                                    <input type="text" class="form-control" value="{{ advertisement.product.name }}" readonly>
+                                    <div class="form-text">Product cannot be changed after creation</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Advertisement Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                           value="{{ advertisement.title }}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description *</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" required>{{ advertisement.description }}</textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="promo_message" class="form-label">Promo Message</label>
+                                    <textarea class="form-control" id="promo_message" name="promo_message" rows="2">{{ advertisement.promo_message or '' }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="discount_percentage" class="form-label">Discount Percentage *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                               min="1" max="99" required value="{{ advertisement.discount_percentage }}" onchange="calculateDiscount()">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Price Preview</label>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <div class="row text-center">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Original Price</small>
+                                                    <div class="h6 text-decoration-line-through" id="originalPrice">{{ advertisement.original_price|currency }}</div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">Discounted Price</small>
+                                                    <div class="h5 text-success" id="discountedPrice">{{ advertisement.discounted_price|currency }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-center mt-2">
+                                                <span class="badge bg-danger" id="discountBadge">{{ advertisement.discount_percentage }}% OFF</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="starts_at" class="form-label">Start Date & Time *</label>
+                                    <input type="datetime-local" class="form-control" id="starts_at" name="starts_at" required
+                                           value="{{ advertisement.starts_at|ph_datetime_local }}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="expires_at" class="form-label">Expiration Date & Time *</label>
+                                    <input type="datetime-local" class="form-control" id="expires_at" name="expires_at" required
+                                           value="{{ advertisement.expires_at|ph_datetime_local }}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="advertisement_image" class="form-label">Advertisement Image</label>
+                                    {% if advertisement.image_url %}
+                                    <div class="mb-2">
+                                        <img src="{{ url_for('static', filename=advertisement.image_url) }}" 
+                                             class="img-thumbnail" style="max-width: 200px; max-height: 150px;">
+                                        <div class="form-text">Current image</div>
+                                    </div>
+                                    {% endif %}
+                                    <input type="file" class="form-control" id="advertisement_image" name="advertisement_image" 
+                                           accept="image/*">
+                                    <div class="form-text">Upload a new image to replace the current one (optional)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Note:</strong> Changes to approved advertisements may require re-approval by admin.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Update Advertisement
+                            </button>
+                            <a href="{{ url_for('seller_ad.list_advertisements') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calculateDiscount() {
+    const discountInput = document.getElementById('discount_percentage');
+    const originalPrice = parseFloat({{ advertisement.original_price }});
+    const discountedPriceEl = document.getElementById('discountedPrice');
+    const discountBadge = document.getElementById('discountBadge');
+    
+    if (discountInput.value) {
+        const discountPercentage = parseFloat(discountInput.value);
+        const discountedPrice = originalPrice * (1 - discountPercentage / 100);
+        
+        discountedPriceEl.textContent = formatPeso(discountedPrice);
+        discountBadge.textContent = discountPercentage + '% OFF';
+    }
+}
+
+// Add event listener
+document.getElementById('discount_percentage').addEventListener('input', calculateDiscount);
+</script>
+{% endblock %}

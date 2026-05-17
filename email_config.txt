@@ -1,0 +1,18 @@
+# Email Configuration for Automatic OTP Verification
+# 
+# To set up automatic OTP verification:
+# 1. Get your Gmail App Password from: https://myaccount.google.com/security
+# 2. Replace the values below with your actual credentials
+# 3. Run: python apply_email_config.py
+
+EMAIL_ADDRESS = axbninja23lueruang@gmail.com
+APP_PASSWORD = YOUR_16_CHARACTER_APP_PASSWORD_HERE
+
+# Instructions:
+# 1. Go to https://myaccount.google.com/security
+# 2. Enable 2-Factor Authentication
+# 3. Go to 'App passwords' section
+# 4. Generate app password for 'Mail'
+# 5. Copy the 16-character password (like: abcd efgh ijkl mnop)
+# 6. Replace YOUR_16_CHARACTER_APP_PASSWORD_HERE with your actual app password
+# 7. Save this file and run: python apply_email_config.py

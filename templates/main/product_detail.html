@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    {% if product.image_url %}
+                    <img src="{{ url_for('static', filename=product.image_url) }}" class="img-fluid rounded" alt="{{ product.name }}">
+                    {% else %}
+                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <i class="fas fa-image fa-5x text-muted"></i>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">{{ product.name }}</h2>
+                    
+                    {% if discount_info %}
+                    <!-- Discount Information -->
+                    <div class="alert alert-success mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tag fa-2x me-3"></i>
+                            <div>
+                                <h5 class="mb-1">Special Offer Active!</h5>
+                                <p class="mb-0">You're getting {{ discount_info.percentage }}% off this item</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <span class="h3 text-success me-3">{{ discount_info.discounted_price|currency }}</span>
+                            <span class="h5 text-muted text-decoration-line-through">{{ product.price|currency }}</span>
+                            <span class="badge bg-danger ms-2 fs-6">{{ discount_info.percentage }}% OFF</span>
+                        </div>
+                        <small class="text-muted">
+                            {% if discount_info.expires_at %}
+                            Offer expires: {{ discount_info.expires_at|datetime('%B %d, %Y at %I:%M %p') }}
+                            {% else %}
+                            Limited-time offer (no fixed expiry shown)
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <span class="h3 text-success">{{ product.price|currency }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <div class="rating">
+                            {% for i in range(5) %}
+                                {% if i < avg_rating %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="ms-2">{{ "%.1f"|format(avg_rating) }} out of 5 stars</span>
+                            <span class="text-muted">({{ reviews|length }} Reviews)</span>
+                        </div>
+                    </div>
+
+                    {% if seller %}
+                    <div class="card border-success mb-3">
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: 700;">
+                                    {{ ((seller.first_name or seller.email or 'S')[:1]).upper() }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ seller.first_name }} {{ seller.last_name }}</div>
+                                    <small class="text-muted"><i class="fas fa-store me-1"></i>Seller for this product</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <span class="badge bg-success">{{ product.category }}</span>
+                        {% if product.stock_quantity > 0 %}
+                        <span class="badge bg-info ms-2">Stock: {{ product.stock_quantity }}</span>
+                        {% else %}
+                        <span class="badge bg-danger ms-2">Out of Stock</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <p class="text-muted">{{ product.description }}</p>
+                    </div>
+                    
+                    {% if session.user_id and session.user_type == 'buyer' %}
+                    <div class="d-flex gap-2 mb-3">
+                        {% if product.stock_quantity > 0 %}
+                        <button class="btn btn-success flex-fill" onclick="addToCart({{ product.id }})">
+                            <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary flex-fill" disabled>
+                            <i class="fas fa-times me-2"></i>Out of Stock
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-outline-success" id="wishlist-btn-{{ product.id }}" onclick="toggleWishlist({{ product.id }})">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-truck me-2"></i>Shipping Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li><i class="fas fa-check text-success me-2"></i>Free shipping on orders over ₱1,000</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Estimated delivery: 3-5 business days</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Cash on delivery available</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reviews Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-star me-2"></i>Customer Reviews</h5>
+                </div>
+                <div class="card-body">
+                    {% if reviews %}
+                        {% for review in reviews %}
+                        <div class="border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>{{ review.user.first_name }} {{ review.user.last_name }}</strong>
+                                    <div class="rating">
+                                        {% for i in range(5) %}
+                                            {% if i < review.rating %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-warning"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ review.created_at|ph_date('%B %d, %Y') }}</small>
+                            </div>
+                            {% if review.comment %}
+                            <p class="mb-0">{{ review.comment }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h6>No reviews yet</h6>
+                        <p class="text-muted">Be the first to review this product!</p>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Products -->
+    {% if related_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Related Products</h4>
+            <div class="row">
+                {% for related_product in related_products %}
+                <div class="col-md-3 mb-4">
+                    <div class="card product-card h-100">
+                        {% if related_product.image_url %}
+                        <img src="{{ url_for('static', filename=related_product.image_url) }}" class="card-img-top" alt="{{ related_product.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ related_product.name }}</h6>
+                            <p class="card-text text-muted small">{{ related_product.description[:80] }}...</p>
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="h6 text-success mb-0">{{ related_product.price|currency }}</span>
+                                </div>
+                                <a href="{{ url_for('main.product_detail', product_id=related_product.id) }}" class="btn btn-outline-success btn-sm w-100">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId) {
+    fetch('{{ url_for("main.add_to_cart") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Item added to cart successfully!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function toggleWishlist(productId) {
+    const button = document.getElementById(`wishlist-btn-${productId}`);
+    const icon = button.querySelector('i');
+    
+    // Check current wishlist status
+    fetch('{{ url_for("buyer.check_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.is_in_wishlist) {
+                // Remove from wishlist
+                removeFromWishlist(productId, button, icon);
+            } else {
+                // Add to wishlist
+                addToWishlist(productId, button, icon);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function addToWishlist(productId, button, icon) {
+    fetch('{{ url_for("buyer.add_to_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-success');
+            icon.classList.add('text-white');
+            showNotification('Product added to wishlist!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+function removeFromWishlist(productId, button, icon) {
+    fetch('{{ url_for("buyer.remove_from_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-success');
+            icon.classList.remove('text-white');
+            showNotification('Product removed from wishlist!', 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+// Initialize wishlist button state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if session.user_id and session.user_type == 'buyer' %}
+    const productId = {{ product.id }};
+    const button = document.getElementById(`wishlist-btn-${productId}`);
+    const icon = button.querySelector('i');
+    
+    // Check if product is in wishlist
+    fetch('{{ url_for("buyer.check_wishlist") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.is_in_wishlist) {
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-success');
+            icon.classList.add('text-white');
+        }
+    })
+    .catch(error => {
+        console.error('Error checking wishlist status:', error);
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

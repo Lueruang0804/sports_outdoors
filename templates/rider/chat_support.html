@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Support - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Rider Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('rider.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('rider.deliveries') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-truck me-2"></i>My Deliveries
+                        </a>
+                        <a href="{{ url_for('rider.available_deliveries') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-plus-circle me-2"></i>Available Deliveries
+                        </a>
+                        <a href="{{ url_for('rider.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('rider.chat_support') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('rider.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('rider.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-comments me-2"></i>Chat Support</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-5">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h5>Chat Support</h5>
+                        <p class="text-muted">Get help and support from our team. Chat functionality will be available soon!</p>
+                        <div class="mt-4">
+                            <h6>Contact Information</h6>
+                            <p class="text-muted">
+                                <i class="fas fa-envelope me-2"></i>support@sportsandoutdoors.com<br>
+                                <i class="fas fa-phone me-2"></i>+63 (2) 8XXX-XXXX
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

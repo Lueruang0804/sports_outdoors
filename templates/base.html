@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sports and Outdoors {% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.home') }}">
+                <i class="fas fa-leaf text-success me-2"></i>
+                <span class="fw-bold">Sports and Outdoors </span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.home') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.products') }}">Products</a>
+                    </li>
+                    {% if session.user_id %}
+                        {% if session.user_type == 'buyer' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.cart') }}">
+                                    <i class="fas fa-shopping-cart"></i> Cart
+                                    <span class="badge bg-danger" id="cart-count">0</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('buyer.orders') }}">My Orders</a>
+                            </li>
+                        {% elif session.user_type == 'seller' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('seller.products') }}">My Products</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('seller.orders') }}">Orders</a>
+                            </li>
+                        {% elif session.user_type == 'rider' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('rider.available_deliveries') }}">Available Deliveries</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('rider.deliveries') }}">My Deliveries</a>
+                            </li>
+                        {% elif session.user_type == 'admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.users') }}">Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.orders') }}">Orders</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin.chat_support') }}">Chat Support</a>
+                            </li>
+                        {% endif %}
+                        
+                        <!-- Chat Support for all users -->
+                        {% if session.user_type != 'admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.user_chat_support') }}">
+                                    <i class="fas fa-comments me-1"></i>Support
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <!-- Search Bar -->
+                <form class="d-flex me-3" action="{{ url_for('main.products') }}" method="GET">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search products..." value="{{ request.args.get('search', '') }}" style="width: 200px;">
+                    <button type="submit" class="btn btn-outline-success btn-sm ms-1">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                
+                <ul class="navbar-nav">
+                    {% if session.user_id %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge bg-danger" id="notification-count">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for(session.user_type + '.notifications') }}">
+                                    <i class="fas fa-bell me-2"></i>All Notifications
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li id="recent-notifications">
+                                    <span class="dropdown-item-text text-muted small">Loading recent notifications...</span>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ session.user_name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for(session.user_type + '.dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for(session.user_type + '.profile') }}">
+                                    <i class="fas fa-user me-2"></i>Profile
+                                </a></li>
+                                {% if session.user_type == 'buyer' %}
+                                <li><a class="dropdown-item" href="{{ url_for('main.cart') }}">
+                                    <i class="fas fa-shopping-cart me-2"></i>Cart
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('buyer.wishlist') }}">
+                                    <i class="fas fa-heart me-2"></i>Wishlist
+                                </a></li>
+                                {% elif session.user_type == 'seller' %}
+                                <li><a class="dropdown-item" href="{{ url_for('seller.sales_report') }}">
+                                    <i class="fas fa-chart-line me-2"></i>Sales Report
+                                </a></li>
+                                {% elif session.user_type == 'rider' %}
+                                <li><a class="dropdown-item" href="{{ url_for('rider.commissions') }}">
+                                    <i class="fas fa-money-bill me-2"></i>Commissions
+                                </a></li>
+                                {% elif session.user_type == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin.commissions') }}">
+                                    <i class="fas fa-chart-bar me-2"></i>Platform Analytics
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.advertisements') }}">
+                                    <i class="fas fa-ad me-2"></i>Advertisements
+                                </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('main.home') }}">
+                                    <i class="fas fa-home me-2"></i>Back to Store
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Sports and Outdoors Ecommerce System</h5>
+                    <p>Your one-stop shop for all sports and outdoor equipment.</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('main.about') }}" class="text-light">About Us</a></li>
+                        <li><a href="{{ url_for('main.contact') }}" class="text-light">Contact Us</a></li>
+                        <li><a href="{{ url_for('main.privacy_policy') }}" class="text-light">Privacy Policy</a></li>
+                        <li><a href="{{ url_for('main.terms_of_service') }}" class="text-light">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2024 Sports and Outdoors Ecommerce System. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Chat Widget -->
+    <div class="chat-widget">
+        <button class="btn btn-success rounded-circle" data-bs-toggle="modal" data-bs-target="#chatModal">
+            <i class="fas fa-comments"></i>
+        </button>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chat Support</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message support">
+                            <p>Hello! How can we help you today?</p>
+                        </div>
+                    </div>
+                    <div class="input-group mt-3">
+                        <input type="text" class="form-control" id="chatInput" placeholder="Type your message...">
+                        <button class="btn btn-success" type="button" id="sendMessage">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <script>
+    // Update cart count and notifications on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if session.user_id %}
+            updateCartCount();
+            updateNotificationCount();
+            loadRecentNotifications();
+            setInterval(function() {
+                updateNotificationCount();
+                loadRecentNotifications();
+            }, 15000);
+        {% endif %}
+    });
+    
+    function updateCartCount() {
+        {% if session.user_type == 'buyer' %}
+        fetch('{{ url_for("main.cart") }}')
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const cartItems = doc.querySelectorAll('.cart-item');
+                const cartCount = document.getElementById('cart-count');
+                if (cartCount) {
+                    cartCount.textContent = cartItems.length;
+                }
+            })
+            .catch(error => console.error('Error updating cart count:', error));
+        {% endif %}
+    }
+    
+    function updateNotificationCount() {
+        fetch('/api/notifications/count')
+            .then(response => response.json())
+            .then(data => {
+                const notificationCount = document.getElementById('notification-count');
+                if (notificationCount) {
+                    notificationCount.textContent = data.count;
+                    notificationCount.style.display = data.count > 0 ? 'inline' : 'none';
+                }
+            })
+            .catch(error => console.error('Error updating notification count:', error));
+    }
+
+    function loadRecentNotifications() {
+        const recentContainer = document.getElementById('recent-notifications');
+        if (!recentContainer) return;
+        const notificationsPageUrl = {% if session.get('user_type') %}"{{ url_for(session.get('user_type') + '.notifications') }}"{% else %}"#"{% endif %};
+
+        fetch('/api/notifications/recent')
+            .then(response => response.json())
+            .then(data => {
+                const notifications = data.notifications || [];
+                if (!notifications.length) {
+                    recentContainer.innerHTML = '<span class="dropdown-item-text text-muted small">No recent notifications</span>';
+                    return;
+                }
+
+                const itemsHtml = notifications.map(notification => {
+                    const badgeClass = notification.is_read ? 'bg-secondary' : 'bg-success';
+                    return `
+                        <a class="dropdown-item py-2" href="${notificationsPageUrl}">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div class="small">
+                                    <div class="fw-semibold">${notification.title}</div>
+                                    <div class="text-muted">${notification.message}</div>
+                                    <div class="text-muted mt-1" style="font-size: 11px;">${notification.created_at}</div>
+                                </div>
+                                <span class="badge ${badgeClass} text-uppercase">${notification.notification_type}</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+                recentContainer.innerHTML = itemsHtml;
+            })
+            .catch(error => {
+                console.error('Error loading recent notifications:', error);
+                recentContainer.innerHTML = '<span class="dropdown-item-text text-danger small">Failed to load notifications</span>';
+            });
+    }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

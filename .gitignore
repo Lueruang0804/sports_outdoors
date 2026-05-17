@@ -1,0 +1,32 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local DB / logs
+*.log
+*.sqlite
+*.db
+
+# Optional: large local uploads (re-upload on server or use cloud storage)
+# Uncomment if repo is too large:
+# static/uploads/**/*
+# !static/uploads/**/.gitkeep

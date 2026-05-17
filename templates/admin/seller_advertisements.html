@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Seller Advertisements - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3">
+            {% include 'includes/dashboard_sidebar.html' %}
+        </div>
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bullhorn me-2"></i>Seller Advertisements</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary" onclick="filterAds('all')">All</button>
+                    <button class="btn btn-outline-warning" onclick="filterAds('pending')">Pending</button>
+                    <button class="btn btn-outline-success" onclick="filterAds('approved')">Approved</button>
+                    <button class="btn btn-outline-danger" onclick="filterAds('rejected')">Rejected</button>
+                </div>
+            </div>
+
+            {% if advertisements %}
+            <div class="row">
+                {% for ad, seller, product in advertisements %}
+                <div class="col-md-6 col-lg-4 mb-4 ad-card" data-status="{% if ad.is_approved %}approved{% else %}pending{% endif %}">
+                    <div class="card h-100">
+                        {% if ad.image_url %}
+                        <img src="{{ url_for('static', filename=ad.image_url) }}" class="card-img-top" alt="{{ ad.title }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ ad.title }}</h6>
+                            <p class="card-text text-muted small">{{ ad.description[:100] }}{% if ad.description|length > 100 %}...{% endif %}</p>
+                            
+                            <div class="mb-3">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <small class="text-muted">Original</small>
+                                        <div class="small text-decoration-line-through">{{ ad.original_price|currency }}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Sale Price</small>
+                                        <div class="h6 text-success mb-0">{{ ad.discounted_price|currency }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <span class="badge bg-danger">{{ ad.discount_percentage }}% OFF</span>
+                                {% if ad.is_approved %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                                
+                                {% if ad.is_active %}
+                                    <span class="badge bg-primary">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <strong>Seller:</strong> {{ seller.first_name }} {{ seller.last_name }}<br>
+                                    <strong>Product:</strong> {{ product.name }}<br>
+                                    <strong>Expires:</strong> {{ ad.expires_at|datetime('%b %d, %Y %I:%M %p') }}
+                                </small>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                {% if not ad.is_approved %}
+                                <div class="d-flex gap-2 mb-2">
+                                    <form method="POST" action="{{ url_for('admin_ad.approve_advertisement', ad_id=ad.id) }}" class="flex-fill">
+                                        <button type="submit" class="btn btn-success btn-sm w-100">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin_ad.reject_advertisement', ad_id=ad.id) }}" class="flex-fill">
+                                        <button type="submit" class="btn btn-danger btn-sm w-100">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="{{ url_for('admin_ad.toggle_advertisement', ad_id=ad.id) }}" class="flex-fill">
+                                        <button type="submit" class="btn btn-outline-{{ 'warning' if ad.is_active else 'success' }} btn-sm w-100">
+                                            <i class="fas fa-{{ 'pause' if ad.is_active else 'play' }}"></i>
+                                            {{ 'Deactivate' if ad.is_active else 'Activate' }}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin_ad.delete_advertisement', ad_id=ad.id) }}" class="flex-fill"
+                                          onsubmit="return confirm('Are you sure you want to delete this advertisement?')">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bullhorn fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Seller Advertisements</h4>
+                <p class="text-muted">No sellers have created advertisements yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterAds(status) {
+    const cards = document.querySelectorAll('.ad-card');
+    
+    cards.forEach(card => {
+        if (status === 'all' || card.dataset.status === status) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %}

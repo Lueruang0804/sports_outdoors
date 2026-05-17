@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block extra_css %}
+<style>
+.home-admin-carousel .carousel-control-prev-icon,
+.home-admin-carousel .carousel-control-next-icon { filter: brightness(0) invert(1); opacity: 0.9; }
+.home-promo-carousel .carousel-item { min-height: 420px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section bg-success text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Welcome to Sports and Outdoors</h1>
+                <p class="lead mb-4">Discover the best sports and outdoor equipment for your adventures. From camping gear to fitness equipment, we have everything you need.</p>
+                <a href="{{ url_for('main.products') }}" class="btn btn-light btn-lg">Shop Now</a>
+            </div>
+            <div class="col-lg-6">
+                <img src="{{ url_for('static', filename='images/fitness-hero.jpg') }}" class="img-fluid rounded" alt="Fitness and Training">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Store offers (admin) + Seller specials: slideshows, admin first -->
+<section class="py-4 bg-white border-bottom">
+    <div class="container">
+        {% if advertisements %}
+        <div class="mb-5">
+            <h2 class="h3 fw-bold text-center mb-1">Store offers</h2>
+            <p class="text-muted text-center small mb-4">Official site promotions — swipe or use arrows</p>
+            <div id="homeAdminOffersCarousel" class="carousel slide home-admin-carousel shadow rounded overflow-hidden" data-bs-ride="carousel" data-bs-interval="5500">
+                {% if advertisements|length > 1 %}
+                <div class="carousel-indicators mb-0">
+                    {% for ad in advertisements %}
+                    <button type="button" data-bs-target="#homeAdminOffersCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Store offer {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="carousel-inner">
+                    {% for ad in advertisements %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <div class="card border-0 rounded-0 bg-success text-white mb-0">
+                            <div class="card-body py-4 px-4">
+                                <div class="row align-items-center g-3">
+                                    <div class="col-md-8">
+                                        <h3 class="h4 mb-2">{{ ad.title }}</h3>
+                                        <p class="mb-3 opacity-90">{{ ad.description }}</p>
+                                        {% if ad.discount_percentage %}
+                                        <span class="badge bg-warning text-dark me-2">{{ ad.discount_percentage }}% OFF</span>
+                                        {% endif %}
+                                        {% if ad.promo_code %}
+                                        <p class="small mb-2 mt-2"><strong>Promo code:</strong> <span class="badge bg-dark text-white font-monospace">{{ ad.promo_code }}</span> — enter this code on your <a href="{{ url_for('main.cart') }}" class="text-white fw-bold">shopping cart</a> to get the discount.</p>
+                                        {% endif %}
+                                        <a href="{{ url_for('main.cart') }}" class="btn btn-light btn-sm mt-2 mt-md-0">Open shopping cart</a>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        {% if ad.image_url %}
+                                        <img src="{{ url_for('static', filename=ad.image_url) }}" class="img-fluid rounded" style="max-height: 200px; object-fit: contain;" alt="">
+                                        {% else %}
+                                        <div class="rounded p-4 bg-light bg-opacity-10 text-white-50"><i class="fas fa-bullhorn fa-3x"></i></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if advertisements|length > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#homeAdminOffersCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#homeAdminOffersCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="{% if advertisements %}pt-2 border-top{% endif %}">
+            <h2 class="h3 fw-bold text-center mb-1">Seller special offers</h2>
+            <p class="text-muted text-center small mb-4">Below store offers — limited-time deals from sellers</p>
+            {% if seller_ads %}
+            <div id="homeSellerOffersCarousel" class="carousel slide carousel-dark home-promo-carousel shadow rounded overflow-hidden" data-bs-ride="carousel" data-bs-interval="6000">
+                {% if seller_ads|length > 1 %}
+                <div class="carousel-indicators mb-0">
+                    {% for ad in seller_ads %}
+                    <button type="button" data-bs-target="#homeSellerOffersCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Seller offer {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="carousel-inner bg-light">
+                    {% for ad in seller_ads %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %} py-4 px-2">
+                        <div class="row justify-content-center">
+                            <div class="col-12 col-lg-7">
+                                <div class="card border-0 shadow-sm position-relative mx-auto" style="max-width: 520px;">
+                                    {% if ad.image_url %}
+                                    <img src="{{ url_for('static', filename=ad.image_url) }}" class="card-img-top" alt="{{ ad.title }}" style="height: 220px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="card-img-top bg-white d-flex align-items-center justify-content-center" style="height: 220px;">
+                                        <i class="fas fa-image fa-3x text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="position-absolute top-0 start-0 m-2">
+                                        <span class="badge bg-danger fs-6">{{ ad.discount_percentage }}% OFF</span>
+                                    </div>
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <small class="badge bg-warning text-dark" id="countdown-{{ ad.id }}"></small>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title">{{ ad.title }}</h5>
+                                        <p class="card-text text-muted small">{{ ad.description[:120] }}{% if ad.description|length > 120 %}...{% endif %}</p>
+                                        <div class="row text-center mb-3 mt-auto">
+                                            <div class="col-6">
+                                                <small class="text-muted">Original</small>
+                                                <div class="small text-decoration-line-through">{{ ad.original_price|currency }}</div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Sale</small>
+                                                <div class="h5 text-success mb-0">{{ ad.discounted_price|currency }}</div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ url_for('seller_ad.advertisement_click', ad_id=ad.id) }}" class="btn btn-success w-100">
+                                            <i class="fas fa-shopping-cart me-1"></i>Shop now
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if seller_ads|length > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#homeSellerOffersCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#homeSellerOffersCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 bg-light rounded border">
+                <p class="text-muted mb-2">No active seller promotions to show yet. Sellers must have an approved, in-date ad and an active product.</p>
+                <a href="{{ url_for('main.products') }}" class="btn btn-outline-success btn-sm">Browse products</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Search Section -->
+<section class="py-4 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <form action="{{ url_for('main.products') }}" method="GET" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="Search products..." value="{{ request.args.get('search', '') }}">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Shop by Category</h2>
+        <div class="row">
+            {% for category in categories %}
+            <div class="col-md-4 col-lg-2 mb-4">
+                <a href="{{ url_for('main.products', category=category) }}" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-{% if category == 'Fitness Equipment' %}dumbbell{% elif category == 'Camping & Hiking Gear' %}campground{% elif category == 'Sports Apparel' %}tshirt{% elif category == 'Cycling & Bikes' %}bicycle{% elif category == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} fa-3x text-success mb-3"></i>
+                            <h6 class="card-title">{{ category }}</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Featured Products</h2>
+        <div class="row">
+            {% for product in featured_products %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    {% if product.image_url %}
+                    <img src="{{ url_for('static', filename=product.image_url) }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text text-muted">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="h5 text-success mb-0">{{ product.price|currency }}</span>
+                                <small class="text-muted">{{ product.category }}</small>
+                            </div>
+                            {% if product.stock_quantity <= 0 %}
+                            <span class="badge bg-danger mb-2">Out of Stock</span>
+                            {% endif %}
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-outline-success flex-fill">View Details</a>
+                                {% if session.user_id and session.user_type == 'buyer' %}
+                                {% if product.stock_quantity > 0 %}
+                                <button class="btn btn-success" onclick="addToCart({{ product.id }})">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-secondary" disabled title="Out of stock">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.products') }}" class="btn btn-success btn-lg">View All Products</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Countdown timers for advertisements
+{% if seller_ads %}
+document.addEventListener('DOMContentLoaded', function() {
+    {% for ad in seller_ads %}
+    (function() {
+        const countdownElement = document.getElementById('countdown-{{ ad.id }}');
+        const endTime = new Date('{{ ad.expires_at|iso_utc }}').getTime();
+        
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const timeLeft = endTime - now;
+            
+            if (timeLeft > 0) {
+                const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (days > 0) {
+                    countdownElement.textContent = `${days}d ${hours}h`;
+                } else if (hours > 0) {
+                    countdownElement.textContent = `${hours}h ${minutes}m`;
+                } else {
+                    countdownElement.textContent = `${minutes}m`;
+                }
+            } else {
+                countdownElement.textContent = 'Expired';
+                countdownElement.className = 'badge bg-danger';
+            }
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 60000); // Update every minute
+    })();
+    {% endfor %}
+});
+{% endif %}
+
+// Add to cart function
+function addToCart(productId) {
+    fetch('{{ url_for("main.add_to_cart") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showAlert('Item added to cart successfully!', 'success');
+        } else {
+            showAlert(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred. Please try again.', 'error');
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

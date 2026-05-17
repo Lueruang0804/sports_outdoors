@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Rider Dashboard - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {% include 'includes/dashboard_sidebar.html' %}
+        
+        <div class="col-md-9">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-primary text-white mx-auto">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <h4>{{ total_deliveries }}</h4>
+                            <p class="text-muted">Total Deliveries</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-warning text-white mx-auto">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h4>{{ pending_deliveries }}</h4>
+                            <p class="text-muted">Pending Deliveries</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-success text-white mx-auto">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h4>{{ completed_deliveries }}</h4>
+                            <p class="text-muted">Completed Deliveries</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-info text-white mx-auto">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h4>{{ total_commissions|currency }}</h4>
+                            <p class="text-muted">Total Commissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>Monthly Commissions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                <h3 class="text-success">{{ monthly_commissions|currency }}</h3>
+                                <p class="text-muted">This Month</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-truck me-2"></i>Delivery Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h5 class="text-warning">{{ pending_deliveries }}</h5>
+                                    <small>Pending</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 class="text-info">{{ total_deliveries - pending_deliveries - completed_deliveries }}</h5>
+                                    <small>In Progress</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 class="text-success">{{ completed_deliveries }}</h5>
+                                    <small>Completed</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-clock me-2"></i>Recent Deliveries</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_deliveries %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Order Number</th>
+                                            <th>Customer</th>
+                                            <th>Status</th>
+                                            <th>Commission</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for delivery in recent_deliveries %}
+                                        <tr>
+                                            <td>{{ delivery.order.order_number }}</td>
+                                            <td>{{ delivery.order.buyer.first_name }} {{ delivery.order.buyer.last_name }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if delivery.status == 'delivered' %}success{% elif delivery.status == 'pending' %}warning{% else %}info{% endif %}">
+                                                    {{ delivery.status.replace('_', ' ').title() }}
+                                                </span>
+                                            </td>
+                                            <td>{{ delivery.commission_amount|currency }}</td>
+                                            <td>{{ delivery.created_at|ph_date('%m/%d/%Y') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('rider.deliveries') }}" class="btn btn-success">View All Deliveries</a>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                                <h5>No deliveries yet</h5>
+                                <p class="text-muted">Your delivery assignments will appear here.</p>
+                                <a href="{{ url_for('rider.available_deliveries') }}" class="btn btn-success">View Available Deliveries</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-plus-circle me-2"></i>Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('rider.available_deliveries') }}" class="btn btn-success">
+                                    <i class="fas fa-plus me-2"></i>View Available Deliveries
+                                </a>
+                                <a href="{{ url_for('rider.commissions') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-dollar-sign me-2"></i>View Commissions
+                                </a>
+                                <a href="{{ url_for('rider.chat_support') }}" class="btn btn-outline-info">
+                                    <i class="fas fa-comments me-2"></i>Chat Support
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

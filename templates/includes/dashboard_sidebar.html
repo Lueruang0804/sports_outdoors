@@ -1,0 +1,102 @@
+<!-- Dashboard Sidebar -->
+<div class="col-md-3">
+    <div class="card">
+        <div class="card-header">
+            <h5>{{ session.user_type.title() }} Dashboard</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for(session.user_type + '.dashboard') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == session.user_type + '.dashboard' else '' }}">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+                
+                {% if session.user_type == 'buyer' %}
+                    <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'buyer.orders' or request.endpoint == 'buyer.order_detail' else '' }}">
+                        <i class="fas fa-shopping-bag me-2"></i>My Orders
+                    </a>
+                    <a href="{{ url_for('main.cart') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'main.cart' else '' }}">
+                        <i class="fas fa-shopping-cart me-2"></i>Shopping Cart
+                    </a>
+                    <a href="{{ url_for('buyer.wishlist') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'buyer.wishlist' else '' }}">
+                        <i class="fas fa-heart me-2"></i>Wishlist
+                    </a>
+                    <a href="{{ url_for('buyer.chat') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['buyer.chat', 'buyer.chat_room', 'buyer.send_message'] else '' }}">
+                        <i class="fas fa-comments me-2"></i>Chat with Riders
+                    </a>
+                    
+                {% elif session.user_type == 'seller' %}
+                    <a href="{{ url_for('seller.products') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['seller.products', 'seller.add_product', 'seller.edit_product'] else '' }}">
+                        <i class="fas fa-box me-2"></i>My Products
+                    </a>
+                    <a href="{{ url_for('seller_ad.list_advertisements') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['seller_ad.list_advertisements', 'seller_ad.create_advertisement', 'seller_ad.edit_advertisement'] else '' }}">
+                        <i class="fas fa-bullhorn me-2"></i>Advertisements
+                    </a>
+                    <a href="{{ url_for('seller.orders') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'seller.orders' else '' }}">
+                        <i class="fas fa-shopping-bag me-2"></i>Orders
+                    </a>
+                    <a href="{{ url_for('seller.sales_report') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'seller.sales_report' else '' }}">
+                        <i class="fas fa-chart-line me-2"></i>Sales Report
+                    </a>
+                    <a href="{{ url_for('seller.chat') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['seller.chat', 'seller.chat_room', 'seller.send_message'] else '' }}">
+                        <i class="fas fa-comments me-2"></i>Chat with Riders
+                    </a>
+                    
+                {% elif session.user_type == 'rider' %}
+                    <a href="{{ url_for('rider.available_deliveries') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'rider.available_deliveries' else '' }}">
+                        <i class="fas fa-truck me-2"></i>Available Deliveries
+                    </a>
+                    <a href="{{ url_for('rider.deliveries') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'rider.deliveries' else '' }}">
+                        <i class="fas fa-shipping-fast me-2"></i>My Deliveries
+                    </a>
+                    <a href="{{ url_for('rider.commissions') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'rider.commissions' else '' }}">
+                        <i class="fas fa-money-bill me-2"></i>Commissions
+                    </a>
+                    <a href="{{ url_for('rider.chat') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['rider.chat', 'rider.chat_room', 'rider.send_message'] else '' }}">
+                        <i class="fas fa-comments me-2"></i>Chat with Buyers
+                    </a>
+                    
+                {% elif session.user_type == 'admin' %}
+                    <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.users' else '' }}">
+                        <i class="fas fa-users me-2"></i>Users
+                    </a>
+                    <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.products' else '' }}">
+                        <i class="fas fa-box me-2"></i>Products
+                    </a>
+                    <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.orders' else '' }}">
+                        <i class="fas fa-shopping-bag me-2"></i>Orders
+                    </a>
+                    <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.commissions' else '' }}">
+                        <i class="fas fa-chart-bar me-2"></i>Platform Analytics
+                    </a>
+                    <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['admin.advertisements', 'admin.add_advertisement'] else '' }}">
+                        <i class="fas fa-ad me-2"></i>Platform Ads
+                    </a>
+                    <a href="{{ url_for('admin_ad.list_seller_advertisements') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint in ['admin_ad.list_seller_advertisements', 'admin_ad.approve_advertisement', 'admin_ad.reject_advertisement'] else '' }}">
+                        <i class="fas fa-bullhorn me-2"></i>Seller Ads
+                    </a>
+                    <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.chat_support' else '' }}">
+                        <i class="fas fa-comments me-2"></i>Chat Support
+                    </a>
+                {% endif %}
+                
+                <hr class="my-2">
+                
+                <a href="{{ url_for(session.user_type + '.notifications') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == session.user_type + '.notifications' else '' }}">
+                    <i class="fas fa-bell me-2"></i>Notifications
+                    {% if unread_notifications and unread_notifications > 0 %}
+                    <span class="badge bg-danger ms-2">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for(session.user_type + '.profile') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == session.user_type + '.profile' else '' }}">
+                    <i class="fas fa-user me-2"></i>Profile
+                </a>
+                
+                <hr class="my-2">
+                
+                <a href="{{ url_for('main.home') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-home me-2"></i>Back to Store
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

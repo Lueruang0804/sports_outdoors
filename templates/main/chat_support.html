@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Support - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-headset me-2"></i>Support</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('main.home') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-home me-2"></i>Home
+                        </a>
+                        <a href="{{ url_for('main.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        {% if session.user_type == 'buyer' %}
+                        <a href="{{ url_for('main.cart') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-cart me-2"></i>Cart
+                        </a>
+                        <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        {% elif session.user_type == 'seller' %}
+                        <a href="{{ url_for('seller.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>My Products
+                        </a>
+                        <a href="{{ url_for('seller.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        {% elif session.user_type == 'rider' %}
+                        <a href="{{ url_for('rider.available_deliveries') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-truck me-2"></i>Available Deliveries
+                        </a>
+                        <a href="{{ url_for('rider.deliveries') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>My Deliveries
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('main.user_chat_support') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        {% if session.user_type == 'buyer' %}
+                        <a href="{{ url_for('buyer.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                        {% elif session.user_type == 'seller' %}
+                        <a href="{{ url_for('seller.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                        {% elif session.user_type == 'rider' %}
+                        <a href="{{ url_for('rider.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                        {% elif session.user_type == 'admin' %}
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-comments me-2"></i>Chat Support</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0" style="height: 600px;">
+                        <!-- Chat Rooms List -->
+                        <div class="col-md-4 border-end">
+                            <div class="p-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Support Chats</h6>
+                                    <button class="btn btn-primary btn-sm" onclick="startNewChat()">
+                                        <i class="fas fa-plus"></i> New Chat
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-2" style="height: 550px; overflow-y: auto;">
+                                {% for room in chat_rooms %}
+                                <div class="d-flex align-items-center p-2 border-bottom chat-room-item {% if current_room and current_room.id == room.id %}bg-light{% endif %}" 
+                                     data-room-id="{{ room.id }}" style="cursor: pointer;">
+                                    <div class="me-3">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user-shield text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">Admin Support</h6>
+                                        <small class="text-muted">{{ room.created_at|ph_date('%m/%d/%Y') }}</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if not chat_rooms %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-comments fa-2x text-muted mb-3"></i>
+                                    <p class="text-muted">No support chats yet</p>
+                                    <p class="text-muted small">Click "Start New Chat" to begin a conversation with our support team</p>
+                                    <button class="btn btn-primary btn-sm" onclick="startNewChat()">
+                                        <i class="fas fa-plus me-2"></i>Start New Chat
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Area -->
+                        <div class="col-md-8">
+                            {% if current_room %}
+                            <!-- Chat Header -->
+                            <div class="p-3 border-bottom bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user-shield text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Admin Support</h6>
+                                        <small class="text-muted">We're here to help you!</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Messages Area -->
+                            <div id="messages-container" class="p-3" style="height: 450px; overflow-y: auto;">
+                                {% for message in messages %}
+                                <div class="mb-3 {% if message.sender.user_type == 'admin' %}text-start{% else %}text-end{% endif %}">
+                                    <div class="d-flex {% if message.sender.user_type == 'admin' %}justify-content-start{% else %}justify-content-end{% endif %}">
+                                        {% if message.sender.user_type == 'admin' %}
+                                        <div class="me-2">
+                                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user-shield text-white" style="font-size: 12px;"></i>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        <div class="{% if message.sender.user_type == 'admin' %}me-2{% else %}ms-2{% endif %}">
+                                            <div class="p-2 rounded {% if message.sender.user_type == 'admin' %}bg-light{% else %}bg-primary text-white{% endif %}" style="max-width: 300px;">
+                                                <div class="mb-1">{{ message.message }}</div>
+                                                <small class="{% if message.sender.user_type == 'admin' %}text-muted{% else %}text-white-50{% endif %}">
+                                                    {{ message.created_at|ph_time('%H:%M') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        {% if message.sender.user_type != 'admin' %}
+                                        <div class="ms-2">
+                                            {% if message.sender.profile_picture %}
+                                            <img src="{{ url_for('static', filename=message.sender.profile_picture) }}" alt="{{ message.sender.first_name }}" class="rounded-circle" style="width: 30px; height: 30px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user text-muted" style="font-size: 12px;"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Message Input -->
+                            <div class="p-3 border-top">
+                                <form id="message-form" class="d-flex">
+                                    <input type="hidden" id="current-room-id" value="{{ current_room.id }}">
+                                    <input type="text" id="message-input" class="form-control me-2" placeholder="Type your message..." required>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <!-- No Chat Selected -->
+                            <div class="d-flex align-items-center justify-content-center h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                    <h5>Welcome to Chat Support</h5>
+                                    <p class="text-muted">Start a new conversation with our support team or select an existing chat</p>
+                                    <button class="btn btn-primary" onclick="startNewChat()">
+                                        <i class="fas fa-plus me-2"></i>Start New Chat
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle chat room selection
+    document.querySelectorAll('.chat-room-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const roomId = this.dataset.roomId;
+            window.location.href = `/chat-support?room_id=${roomId}`;
+        });
+    });
+    
+    // Handle message form submission
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+    }
+    
+    // Auto-refresh messages every 3 seconds
+    setInterval(function() {
+        const currentRoomId = document.getElementById('current-room-id');
+        if (currentRoomId && currentRoomId.value) {
+            loadMessages(currentRoomId.value);
+        }
+    }, 3000);
+});
+
+function startNewChat() {
+    fetch('/chat-support/start-chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to chat room
+            window.location.href = `/chat-support?room_id=${data.room_id}`;
+        } else {
+            alert('Error starting chat: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting chat');
+    });
+}
+
+function sendMessage() {
+    const roomId = document.getElementById('current-room-id').value;
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
+    
+    if (!message) return;
+    
+    fetch('/chat-support/send-message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            room_id: roomId,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageInput.value = '';
+            loadMessages(roomId);
+        } else {
+            alert('Error sending message: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending message');
+    });
+}
+
+function loadMessages(roomId) {
+    fetch(`/chat-support/get-messages/${roomId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateMessagesDisplay(data.messages);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading messages:', error);
+    });
+}
+
+function updateMessagesDisplay(messages) {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-3 ${message.is_admin ? 'text-start' : 'text-end'}`;
+        
+        const time = new Date(message.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        messageDiv.innerHTML = `
+            <div class="d-flex ${message.is_admin ? 'justify-content-start' : 'justify-content-end'}">
+                ${message.is_admin ? `
+                <div class="me-2">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="fas fa-user-shield text-white" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="${message.is_admin ? 'me-2' : 'ms-2'}">
+                    <div class="p-2 rounded ${message.is_admin ? 'bg-light' : 'bg-primary text-white'}" style="max-width: 300px;">
+                        <div class="mb-1">${message.message}</div>
+                        <small class="${message.is_admin ? 'text-muted' : 'text-white-50'}">
+                            ${time}
+                        </small>
+                    </div>
+                </div>
+                ${!message.is_admin ? `
+                <div class="ms-2">
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="fas fa-user text-muted" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+    });
+    
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+</script>
+{% endblock %}

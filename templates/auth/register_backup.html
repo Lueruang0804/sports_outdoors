@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-leaf fa-3x text-success mb-3"></i>
+                        <h2 class="fw-bold">Join Our Community!</h2>
+                        <p class="text-muted">Create your account to start shopping</p>
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="contact_number" class="form-label">Contact Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="text" class="form-control" id="contact_number" name="contact_number" required oninput="validateNumber(this)">
+                            </div>
+                            <div class="form-text">Numbers only</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" id="password" name="password" required oninput="checkPasswordStrength()">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                                            <i class="fas fa-eye" id="toggleIcon1"></i>
+                                        </button>
+                                    </div>
+                                    <div id="password-strength" class="mt-2"></div>
+                                    <div id="password-requirements" class="mt-2">
+                                        <small class="text-muted">
+                                            <div id="length-req" class="text-danger">• At least 8 characters</div>
+                                            <div id="uppercase-req" class="text-danger">• One uppercase letter</div>
+                                            <div id="lowercase-req" class="text-danger">• One lowercase letter</div>
+                                            <div id="number-req" class="text-danger">• One number</div>
+                                            <div id="special-req" class="text-danger">• One special character</div>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm_password')">
+                                            <i class="fas fa-eye" id="toggleIcon2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="user_type" class="form-label">Account Type</label>
+                            <select class="form-select" id="user_type" name="user_type" required onchange="toggleSellerFields()">
+                                <option value="">Select Account Type</option>
+                                <option value="buyer">Buyer</option>
+                                <option value="seller">Seller</option>
+                                <option value="rider">Rider</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Seller Fields -->
+                        <div id="sellerFields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Product Categories</label>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Fitness Equipment" id="fitness">
+                                            <label class="form-check-label" for="fitness">Fitness Equipment</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Camping & Hiking Gear" id="camping">
+                                            <label class="form-check-label" for="camping">Camping & Hiking Gear</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Sports Apparel" id="apparel">
+                                            <label class="form-check-label" for="apparel">Sports Apparel</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Cycling & Bikes" id="cycling">
+                                            <label class="form-check-label" for="cycling">Cycling & Bikes</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Water Sports" id="water">
+                                            <label class="form-check-label" for="water">Water Sports</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="product_categories" value="Team Sports Equipment" id="team">
+                                            <label class="form-check-label" for="team">Team Sports Equipment</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="business_permit" class="form-label">Business Permit/DTI Registration</label>
+                                <input type="file" class="form-control" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png">
+                                <div class="form-text">Upload your business permit or DTI registration</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Rider Fields -->
+                        <div id="riderFields" style="display: none;">
+                            <div class="mb-3">
+                                <label for="drivers_license" class="form-label">Driver's License <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="drivers_license" name="drivers_license" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+                                <div class="form-text">Upload a clear photo or scan of your valid driver's license</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="vehicle_type" class="form-label">Vehicle Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="vehicle_type" name="vehicle_type" required>
+                                    <option value="">Select Vehicle Type</option>
+                                    <option value="motorcycle">Motorcycle</option>
+                                    <option value="bicycle">Bicycle</option>
+                                    <option value="car">Car</option>
+                                    <option value="van">Van</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="vehicle_plate" class="form-label">Vehicle Plate Number</label>
+                                <input type="text" class="form-control" id="vehicle_plate" name="vehicle_plate" placeholder="e.g., ABC-1234">
+                                <div class="form-text">Enter your vehicle's plate number (if applicable)</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Address Fields -->
+                        <h5 class="mt-4 mb-3">
+                            <i class="fas fa-map-marker-alt me-2"></i>Address
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="address_region" class="form-label">Region <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="address_region" name="address_region" required>
+                                        <option value="">Select Region</option>
+                                        <option value="NCR">National Capital Region (NCR)</option>
+                                        <option value="Region I">Region I - Ilocos Region</option>
+                                        <option value="Region II">Region II - Cagayan Valley</option>
+                                        <option value="Region III">Region III - Central Luzon</option>
+                                        <option value="Region IV-A">Region IV-A - CALABARZON</option>
+                                        <option value="Region IV-B">Region IV-B - MIMAROPA</option>
+                                        <option value="Region V">Region V - Bicol Region</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="address_province" class="form-label">Province <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="address_province" name="address_province" required>
+                                        <option value="">Select Province</option>
+                                        <option value="Metro Manila">Metro Manila</option>
+                                        <option value="Bulacan">Bulacan</option>
+                                        <option value="Pampanga">Pampanga</option>
+                                        <option value="Cavite">Cavite</option>
+                                        <option value="Laguna">Laguna</option>
+                                        <option value="Rizal">Rizal</option>
+                                        <option value="Batangas">Batangas</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="address_city" class="form-label">City/Municipality <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="address_city" name="address_city" required>
+                                        <option value="">Select City/Municipality</option>
+                                        <option value="Quezon City">Quezon City</option>
+                                        <option value="Manila">Manila</option>
+                                        <option value="Makati">Makati</option>
+                                        <option value="Taguig">Taguig</option>
+                                        <option value="Pasig">Pasig</option>
+                                        <option value="Mandaluyong">Mandaluyong</option>
+                                        <option value="Marikina">Marikina</option>
+                                        <option value="Muntinlupa">Muntinlupa</option>
+                                        <option value="Las Piñas">Las Piñas</option>
+                                        <option value="Parañaque">Parañaque</option>
+                                        <option value="Pasay">Pasay</option>
+                                        <option value="Malabon">Malabon</option>
+                                        <option value="Navotas">Navotas</option>
+                                        <option value="Caloocan">Caloocan</option>
+                                        <option value="Valenzuela">Valenzuela</option>
+                                        <option value="San Juan">San Juan</option>
+                                        <option value="Pateros">Pateros</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="address_barangay" class="form-label">Barangay <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="address_barangay" name="address_barangay" required>
+                                        <option value="">Select Barangay</option>
+                                        <option value="Diliman">Diliman</option>
+                                        <option value="Cubao">Cubao</option>
+                                        <option value="Kamuning">Kamuning</option>
+                                        <option value="New Manila">New Manila</option>
+                                        <option value="San Antonio">San Antonio</option>
+                                        <option value="Project 4">Project 4</option>
+                                        <option value="Project 6">Project 6</option>
+                                        <option value="Project 7">Project 7</option>
+                                        <option value="Project 8">Project 8</option>
+                                        <option value="Loyola Heights">Loyola Heights</option>
+                                        <option value="Marikina Heights">Marikina Heights</option>
+                                        <option value="Bagong Silangan">Bagong Silangan</option>
+                                        <option value="Commonwealth">Commonwealth</option>
+                                        <option value="Fairview">Fairview</option>
+                                        <option value="Novaliches">Novaliches</option>
+                                        <option value="Payatas">Payatas</option>
+                                        <option value="Sangandaan">Sangandaan</option>
+                                        <option value="Tandang Sora">Tandang Sora</option>
+                                        <option value="Vasra">Vasra</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address_street" class="form-label">Street Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="address_street" name="address_street" placeholder="House/Building No., Street Name" required>
+                            <div class="form-text">Enter your specific street address</div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="terms_accepted" name="terms_accepted" required>
+                            <label class="form-check-label" for="terms_accepted">
+                                I agree to the <a href="#" class="text-success">Terms and Conditions</a>
+                            </label>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Admin Approval Required:</strong> After registration, your account will be pending admin approval. You can login once approved.
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100 mb-3">Register</button>
+                        
+                        <div class="text-center">
+                            <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="text-success fw-bold">Login here</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// PSGC API Configuration for Luzon-only locations
+const PSGC_API_BASE = 'https://psgc.gitlab.io/api';
+
+// Initialize the form when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure all form fields are enabled first
+    const allSelects = document.querySelectorAll('select');
+    allSelects.forEach(select => {
+        select.disabled = false;
+    });
+    
+    initializeAddressDropdowns();
+    
+    // Ensure fields are enabled after a short delay
+    setTimeout(() => {
+        const allSelects = document.querySelectorAll('select');
+        allSelects.forEach(select => {
+            select.disabled = false;
+        });
+    }, 1000);
+});
+
+function validateNumber(input) {
+    // Remove any non-numeric characters
+    input.value = input.value.replace(/[^0-9]/g, '');
+}
+
+function togglePassword(fieldId) {
+    const passwordInput = document.getElementById(fieldId);
+    const toggleIcon = document.getElementById(fieldId === 'password' ? 'toggleIcon1' : 'toggleIcon2');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+function toggleSellerFields() {
+    const userType = document.getElementById('user_type').value;
+    const sellerFields = document.getElementById('sellerFields');
+    const riderFields = document.getElementById('riderFields');
+    
+    // Hide all fields first
+    sellerFields.style.display = 'none';
+    riderFields.style.display = 'none';
+    
+    // Show appropriate fields based on user type
+    if (userType === 'seller') {
+        sellerFields.style.display = 'block';
+    } else if (userType === 'rider') {
+        riderFields.style.display = 'block';
+    }
+}
+
+function checkPasswordStrength() {
+    const password = document.getElementById('password').value;
+    const strengthDiv = document.getElementById('password-strength');
+    
+    // Check each requirement
+    const hasLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    // Update requirement indicators
+    updateRequirement('length-req', hasLength);
+    updateRequirement('uppercase-req', hasUppercase);
+    updateRequirement('lowercase-req', hasLowercase);
+    updateRequirement('number-req', hasNumber);
+    updateRequirement('special-req', hasSpecial);
+    
+    // Calculate strength
+    const requirements = [hasLength, hasUppercase, hasLowercase, hasNumber, hasSpecial];
+    const metRequirements = requirements.filter(req => req).length;
+    
+    // Update strength indicator
+    if (metRequirements === 0) {
+        strengthDiv.innerHTML = '';
+    } else if (metRequirements <= 2) {
+        strengthDiv.innerHTML = '<div class="progress" style="height: 5px;"><div class="progress-bar bg-danger" style="width: 20%"></div></div><small class="text-danger">Weak</small>';
+    } else if (metRequirements <= 3) {
+        strengthDiv.innerHTML = '<div class="progress" style="height: 5px;"><div class="progress-bar bg-warning" style="width: 40%"></div></div><small class="text-warning">Fair</small>';
+    } else if (metRequirements <= 4) {
+        strengthDiv.innerHTML = '<div class="progress" style="height: 5px;"><div class="progress-bar bg-info" style="width: 60%"></div></div><small class="text-info">Good</small>';
+    } else {
+        strengthDiv.innerHTML = '<div class="progress" style="height: 5px;"><div class="progress-bar bg-success" style="width: 100%"></div></div><small class="text-success">Strong</small>';
+    }
+}
+
+function updateRequirement(elementId, isMet) {
+    const element = document.getElementById(elementId);
+    if (isMet) {
+        element.className = 'text-success';
+        element.innerHTML = element.innerHTML.replace('•', '✓');
+    } else {
+        element.className = 'text-danger';
+        element.innerHTML = element.innerHTML.replace('✓', '•');
+    }
+}
+
+const initializeAddressDropdowns = () => {
+    const regionSelect = document.getElementById('address_region');
+    const provinceSelect = document.getElementById('address_province');
+    const citySelect = document.getElementById('address_city');
+    const barangaySelect = document.getElementById('address_barangay');
+
+    // If the elements don't exist in the current form, do nothing.
+    if (!regionSelect) return;
+
+    const populateDropdown = (selectElement, items, defaultOption) => {
+        selectElement.innerHTML = `<option value="">${defaultOption}</option>`;
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.code;
+            option.textContent = item.name;
+            selectElement.appendChild(option);
+        });
+        selectElement.disabled = false;
+    };
+    
+    // Ensure all dropdowns are enabled initially
+    regionSelect.disabled = false;
+    provinceSelect.disabled = false;
+    citySelect.disabled = false;
+    barangaySelect.disabled = false;
+
+    const fetchAndPopulate = async (url, selectElement, defaultOption, filter = null) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            let data = await response.json();
+            if (filter) {
+                data = data.filter(filter);
+            }
+            populateDropdown(selectElement, data, defaultOption);
+        } catch (error) {
+            console.error(`Failed to fetch ${defaultOption}:`, error);
+            selectElement.innerHTML = `<option value="">Error loading data</option>`;
+            selectElement.disabled = false; // Ensure field remains enabled
+        }
+    };
+
+    // Fetch and populate regions on page load, filtering for Luzon
+    fetchAndPopulate(`${PSGC_API_BASE}/regions/`, regionSelect, 'Select Region', region => region.islandGroupCode === 'luzon');
+
+    // Event listeners for dropdown changes
+    regionSelect.addEventListener('change', () => {
+        citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+        if (regionSelect.value) {
+            fetchAndPopulate(`${PSGC_API_BASE}/regions/${regionSelect.value}/provinces/`, provinceSelect, 'Select Province');
+        } else {
+            provinceSelect.innerHTML = '<option value="">Select Province</option>';
+            provinceSelect.disabled = true;
+        }
+    });
+
+    provinceSelect.addEventListener('change', () => {
+        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+        if (provinceSelect.value) {
+            fetchAndPopulate(`${PSGC_API_BASE}/provinces/${provinceSelect.value}/cities-municipalities/`, citySelect, 'Select City/Municipality');
+        } else {
+            citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+            citySelect.disabled = true;
+        }
+    });
+
+    citySelect.addEventListener('change', () => {
+        if (citySelect.value) {
+            fetchAndPopulate(`${PSGC_API_BASE}/cities-municipalities/${citySelect.value}/barangays/`, barangaySelect, 'Select Barangay');
+        } else {
+            barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+            barangaySelect.disabled = true;
+        }
+    });
+};
+
+
+// Update terms and conditions link
+document.addEventListener('DOMContentLoaded', function() {
+    const termsLink = document.querySelector('a[href="#"]');
+    if (termsLink && termsLink.textContent.includes('Terms and Conditions')) {
+        termsLink.href = '/terms-of-service';
+        termsLink.target = '_blank';
+    }
+});
+</script>
+
+<style>
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.5rem;
+}
+
+.form-select:disabled {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+}
+
+.alert {
+    border-radius: 0.375rem;
+}
+
+#location-error {
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Seller Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('seller.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('seller.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>My Products
+                        </a>
+                        <a href="{{ url_for('seller.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('seller.sales_report') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-bar me-2"></i>Sales Report
+                        </a>
+                        <a href="{{ url_for('seller.notifications') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('seller.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-bell me-2"></i>Notifications</h4>
+                </div>
+                <div class="card-body">
+                    {% if notifications %}
+                    <div class="d-flex justify-content-end gap-2 mb-3">
+                        <form method="POST" action="{{ url_for('seller.mark_all_notifications_as_read') }}">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-check-double me-1"></i>Mark All as Read
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('seller.delete_all_notifications') }}" onsubmit="return confirm('Delete all notifications?')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash-alt me-1"></i>Delete All
+                            </button>
+                        </form>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for notification in notifications %}
+                        <div class="list-group-item {% if not notification.is_read %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ notification.title }}</h6>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ notification.created_at|datetime('%B %d, %Y at %I:%M %p') }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-{% if notification.notification_type == 'order' %}success{% elif notification.notification_type == 'delivery' %}info{% elif notification.notification_type == 'account' %}primary{% else %}secondary{% endif %}">
+                                        {{ notification.notification_type.title() }}
+                                    </span>
+                                    <div class="mt-2 d-flex gap-2 justify-content-end">
+                                        {% if not notification.is_read %}
+                                        <form method="POST" action="{{ url_for('seller.mark_notification_as_read', notification_id=notification.id) }}">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm">Mark as Read</button>
+                                        </form>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('seller.delete_notification', notification_id=notification.id) }}" onsubmit="return confirm('Delete this notification?')">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                        <h5>No notifications</h5>
+                        <p class="text-muted">You're all caught up! Check back later for updates.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

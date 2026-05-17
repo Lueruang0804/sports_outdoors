@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Add Advertisement - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-plus me-2"></i>Add Advertisement</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Advertisement Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="discount_percentage" class="form-label">Discount Percentage</label>
+                                    <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" min="1" max="100" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="expires_at" class="form-label">Expires At (Optional)</label>
+                                    <input type="date" class="form-control" id="expires_at" name="expires_at">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="promo_code" class="form-label">Promo code <span class="text-muted">(buyers enter at cart)</span></label>
+                                    <input type="text" class="form-control text-uppercase font-monospace" id="promo_code" name="promo_code" maxlength="64" placeholder="e.g. SUMMER25" pattern="[A-Za-z0-9_-]*" title="Letters, numbers, dash, underscore only">
+                                    <div class="form-text">Optional. If set, buyers type this code in the shopping cart to get this discount. Must be unique.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Advertisement Image</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                            <div class="form-text">Upload an attractive image for your advertisement (JPG, PNG, GIF)</div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Add Advertisement
+                            </button>
+                            <a href="{{ url_for('admin.advertisements') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

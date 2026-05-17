@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.order_number }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            {% set ost = order|order_status %}
+            <div class="mb-3">
+                <a href="{{ url_for('admin.orders') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to orders
+                </a>
+            </div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h4 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>{{ order.order_number }}</h4>
+                    <span class="badge bg-{% if ost == 'delivered' %}success{% elif ost == 'cancelled' %}danger{% elif ost == 'pending' %}warning{% else %}info{% endif %} fs-6">
+                        {{ order|order_status_label }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Date:</strong></td>
+                                    <td>{{ order.created_at|datetime('%B %d, %Y at %I:%M %p') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment:</strong></td>
+                                    <td>{{ order.payment_method.replace('_', ' ').title() }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total:</strong></td>
+                                    <td class="text-success fw-semibold">{{ order.total_amount|currency }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Customer</h6>
+                            {% if buyer %}
+                            <p class="mb-1">{{ buyer.first_name }} {{ buyer.last_name }}</p>
+                            <p class="mb-1 small text-muted">{{ buyer.email }}</p>
+                            {% if buyer.contact_number %}
+                            <p class="mb-1 small"><i class="fas fa-phone me-1"></i>{{ buyer.contact_number }}</p>
+                            {% endif %}
+                            {% else %}
+                            <p class="text-muted">—</p>
+                            {% endif %}
+                            <h6 class="mt-3">Shipping</h6>
+                            <p class="small mb-0">{{ order.shipping_address }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6><i class="fas fa-truck me-2"></i>Delivery</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Delivery status:</strong></td>
+                                    <td>
+                                        {% if delivery %}
+                                        <span class="badge bg-secondary">{{ delivery_status_label }}</span>
+                                        {% else %}
+                                        <span class="text-muted">No delivery record</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Rider:</strong></td>
+                                    <td>
+                                        {% if rider_user %}
+                                        {{ rider_user.first_name }} {{ rider_user.last_name }}
+                                        {% if rider_user.contact_number %}
+                                        <br><a href="tel:{{ rider_user.contact_number }}">{{ rider_user.contact_number }}</a>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="small text-muted mb-2">Progress</p>
+                            <ul class="list-unstyled small mb-0">
+                                {% for step in timeline %}
+                                <li class="mb-2">
+                                    {% if step.completed %}
+                                    <i class="fas fa-check-circle text-success me-2"></i><strong>{{ step.title }}</strong>
+                                    {% else %}
+                                    <i class="far fa-circle text-muted me-2"></i>{{ step.title }}
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% if ost == 'delivered' and proof_of_delivery and proof_of_delivery.image_url %}
+                    <hr>
+                    <h6><i class="fas fa-camera text-success me-2"></i>Proof of delivery</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#adminOrderPodModal">
+                        View POD image
+                    </button>
+                    {% if proof_of_delivery.remarks %}
+                    <p class="small text-muted mt-2 mb-0">{{ proof_of_delivery.remarks }}</p>
+                    {% endif %}
+                    {% endif %}
+
+                    <hr>
+                    {% if pickup_shops_summary %}
+                    <p class="small text-muted mb-2"><strong>Shops:</strong> {{ pickup_shops_summary }}</p>
+                    {% endif %}
+                    <h6>Items</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Shop</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Line total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>
+                                        {% if item.product and item.product.seller %}
+                                        {% if item.product.seller.first_name or item.product.seller.last_name %}
+                                        {{ item.product.seller.first_name }} {{ item.product.seller.last_name }}
+                                        {% else %}
+                                        {{ item.product.seller.email }}
+                                        {% endif %}
+                                        {% else %}—{% endif %}
+                                    </td>
+                                    <td>{{ item.price|currency }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ (item.price * item.quantity)|currency }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if proof_of_delivery and proof_of_delivery.image_url %}
+{% set imgu = proof_of_delivery.image_url %}
+<div class="modal fade" id="adminOrderPodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Proof of delivery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                {% if imgu[:4] == 'http' %}
+                <img src="{{ imgu }}" class="img-fluid rounded border" alt="POD">
+                {% else %}
+                <img src="{{ url_for('static', filename=imgu) }}" class="img-fluid rounded border" alt="POD">
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

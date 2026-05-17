@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Buyer Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('buyer.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>My Orders
+                        </a>
+                        <a href="{{ url_for('buyer.wishlist') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-heart me-2"></i>Wishlist
+                        </a>
+                        <a href="{{ url_for('buyer.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('buyer.profile') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-user me-2"></i>My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                {% if user.profile_picture %}
+                                <img src="{{ url_for('static', filename=user.profile_picture) }}" class="img-fluid rounded-circle mb-3" alt="Profile Picture" style="width: 150px; height: 150px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 150px; height: 150px;">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="mb-3">
+                                    <label for="profile_picture" class="form-label">Change Profile Picture</label>
+                                    <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="first_name" class="form-label">First Name</label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="last_name" class="form-label">Last Name</label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" value="{{ user.email }}" disabled>
+                                    <div class="form-text">Email cannot be changed</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="contact_number" class="form-label">Contact Number</label>
+                                    <input type="text" class="form-control" id="contact_number" name="contact_number" value="{{ user.contact_number }}" required oninput="validateNumber(this)">
+                                </div>
+                                
+                                <h5 class="mt-4 mb-3">Address Information</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="address_region" class="form-label">Region</label>
+                                            <select class="form-select" id="address_region" name="address_region" required>
+                                                <option value="">Select Region</option>
+                                                <option value="NCR" {% if user.address_region == 'NCR' %}selected{% endif %}>National Capital Region (NCR)</option>
+                                                <option value="Region I" {% if user.address_region == 'Region I' %}selected{% endif %}>Region I - Ilocos</option>
+                                                <option value="Region II" {% if user.address_region == 'Region II' %}selected{% endif %}>Region II - Cagayan Valley</option>
+                                                <option value="Region III" {% if user.address_region == 'Region III' %}selected{% endif %}>Region III - Central Luzon</option>
+                                                <option value="Region IV-A" {% if user.address_region == 'Region IV-A' %}selected{% endif %}>Region IV-A - CALABARZON</option>
+                                                <option value="Region IV-B" {% if user.address_region == 'Region IV-B' %}selected{% endif %}>Region IV-B - MIMAROPA</option>
+                                                <option value="Region V" {% if user.address_region == 'Region V' %}selected{% endif %}>Region V - Bicol</option>
+                                                <option value="Region VI" {% if user.address_region == 'Region VI' %}selected{% endif %}>Region VI - Western Visayas</option>
+                                                <option value="Region VII" {% if user.address_region == 'Region VII' %}selected{% endif %}>Region VII - Central Visayas</option>
+                                                <option value="Region VIII" {% if user.address_region == 'Region VIII' %}selected{% endif %}>Region VIII - Eastern Visayas</option>
+                                                <option value="Region IX" {% if user.address_region == 'Region IX' %}selected{% endif %}>Region IX - Zamboanga Peninsula</option>
+                                                <option value="Region X" {% if user.address_region == 'Region X' %}selected{% endif %}>Region X - Northern Mindanao</option>
+                                                <option value="Region XI" {% if user.address_region == 'Region XI' %}selected{% endif %}>Region XI - Davao</option>
+                                                <option value="Region XII" {% if user.address_region == 'Region XII' %}selected{% endif %}>Region XII - SOCCSKSARGEN</option>
+                                                <option value="Region XIII" {% if user.address_region == 'Region XIII' %}selected{% endif %}>Region XIII - Caraga</option>
+                                                <option value="BARMM" {% if user.address_region == 'BARMM' %}selected{% endif %}>Bangsamoro Autonomous Region in Muslim Mindanao</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="address_province" class="form-label">Province</label>
+                                            <input type="text" class="form-control" id="address_province" name="address_province" value="{{ user.address_province }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="address_city" class="form-label">City</label>
+                                            <input type="text" class="form-control" id="address_city" name="address_city" value="{{ user.address_city }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="address_barangay" class="form-label">Barangay</label>
+                                            <input type="text" class="form-control" id="address_barangay" name="address_barangay" value="{{ user.address_barangay }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                    <a href="{{ url_for('buyer.dashboard') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function validateNumber(input) {
+    // Remove any non-numeric characters
+    input.value = input.value.replace(/[^0-9]/g, '');
+}
+</script>
+{% endblock %}

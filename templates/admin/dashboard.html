@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {% include 'includes/dashboard_sidebar.html' %}
+        
+        <div class="col-md-9">
+            <div class="row mb-4">
+                <div class="col-12 mb-3 d-flex justify-content-between align-items-center">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin.dashboard', period='day') }}" class="btn btn-outline-secondary {% if period == 'day' %}active{% endif %}">Day</a>
+                        <a href="{{ url_for('admin.dashboard', period='week') }}" class="btn btn-outline-secondary {% if period == 'week' %}active{% endif %}">Week</a>
+                        <a href="{{ url_for('admin.dashboard', period='month') }}" class="btn btn-outline-secondary {% if period == 'month' %}active{% endif %}">Month</a>
+                        <a href="{{ url_for('admin.dashboard', period='year') }}" class="btn btn-outline-secondary {% if period == 'year' %}active{% endif %}">Year</a>
+                    </div>
+                    <a class="btn btn-success" href="{{ url_for('admin.dashboard_report_pdf', period=period) }}">
+                        <i class="fas fa-file-pdf me-2"></i>Generate PDF Report
+                    </a>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-primary text-white mx-auto">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h4>{{ total_users }}</h4>
+                            <p class="text-muted">Total Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-success text-white mx-auto">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <h4>{{ total_products }}</h4>
+                            <p class="text-muted">Total Products</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-warning text-white mx-auto">
+                                <i class="fas fa-shopping-bag"></i>
+                            </div>
+                            <h4>{{ total_orders }}</h4>
+                            <p class="text-muted">Total Orders</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card dashboard-card">
+                        <div class="card-body text-center">
+                            <div class="icon bg-info text-white mx-auto">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h4>{{ total_sales|currency }}</h4>
+                            <p class="text-muted">Total Sales</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-1">Period Sales</h6>
+                            <h4 class="mb-0" id="periodSales">{{ (total_sales_period or 0)|currency }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-1">Period Commission</h6>
+                            <h4 class="mb-0" id="periodCommission">{{ (total_commission_period or 0)|currency }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>Sales Analytics</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="salesChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-pie me-2"></i>Commission Analytics</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="commissionChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-user-plus me-2"></i>Recent Registrations</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_users %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in recent_users %}
+                                        <tr>
+                                            <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                            <td>{{ user.email }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if user.user_type == 'buyer' %}primary{% elif user.user_type == 'seller' %}success{% elif user.user_type == 'rider' %}warning{% else %}info{% endif %}">
+                                                    {{ user.user_type.title() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if user.is_approved %}
+                                                <span class="badge bg-success">Approved</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.created_at|ph_date('%m/%d/%Y') }}</td>
+                                            <td>
+                                                {% if not user.is_approved %}
+                                                <form method="POST" action="{{ url_for('admin.approve_user', user_id=user.id) }}" class="d-inline">
+                                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                                </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('admin.users') }}" class="btn btn-success">View All Users</a>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h5>No recent registrations</h5>
+                                <p class="text-muted">New user registrations will appear here.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>Pending Approvals</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <h2 class="text-warning">{{ pending_approvals }}</h2>
+                                <p class="text-muted">Users waiting for approval</p>
+                            </div>
+                            <div class="d-grid">
+                                <a href="{{ url_for('admin.users') }}" class="btn btn-warning">
+                                    <i class="fas fa-user-check me-2"></i>Review Approvals
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const currentPeriod = '{{ period }}';
+
+// Sales Chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for data in sales_data %}'{{ data.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Sales',
+            data: [{% for data in sales_data %}{{ data.total|default(0) }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(40, 167, 69)',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Commission Chart
+const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+const commissionChart = new Chart(commissionCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for data in commission_data %}'{{ data.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Commissions',
+            data: [{% for data in commission_data %}{{ data.commission|default(0) }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+            borderColor: 'rgb(40, 167, 69)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+async function refreshAdminAnalytics() {
+    try {
+        const response = await fetch(`{{ url_for('admin.dashboard_analytics_data') }}?period=${currentPeriod}`, {
+            cache: 'no-store'
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+
+        salesChart.data.labels = payload.sales_data.map(d => d.date);
+        salesChart.data.datasets[0].data = payload.sales_data.map(d => d.total);
+        salesChart.update('none');
+
+        commissionChart.data.labels = payload.commission_data.map(d => d.date);
+        commissionChart.data.datasets[0].data = payload.commission_data.map(d => d.commission);
+        commissionChart.update('none');
+
+        document.getElementById('periodSales').textContent = formatPeso(Number(payload.total_sales_period));
+        document.getElementById('periodCommission').textContent = formatPeso(Number(payload.total_commission_period));
+    } catch (err) {
+        console.error('Failed to refresh admin analytics:', err);
+    }
+}
+
+// Poll every 10 seconds for near real-time synchronized charts.
+setInterval(refreshAdminAnalytics, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Admin Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users me-2"></i>Users
+                        </a>
+                        <a href="{{ url_for('admin.products') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-box me-2"></i>Products
+                        </a>
+                        <a href="{{ url_for('admin.orders') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-bag me-2"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin.commissions') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-dollar-sign me-2"></i>Commissions
+                        </a>
+                        <a href="{{ url_for('admin.advertisements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Advertisements
+                        </a>
+                        <a href="{{ url_for('admin.chat_support') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-comments me-2"></i>Chat Support
+                        </a>
+                        <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('admin.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-box me-2"></i>All Products</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <form method="GET" class="d-flex">
+                                <input type="text" name="search" class="form-control me-2" placeholder="Search products..." value="{{ current_search }}">
+                                <button type="submit" class="btn btn-outline-success">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary {% if current_status == 'all' %}active{% endif %}">All</a>
+                                    <a href="{{ url_for('admin.products', status='active') }}" class="btn btn-outline-secondary {% if current_status == 'active' %}active{% endif %}">Active</a>
+                                    <a href="{{ url_for('admin.products', status='inactive') }}" class="btn btn-outline-secondary {% if current_status == 'inactive' %}active{% endif %}">Inactive</a>
+                                    <a href="{{ url_for('admin.products', status='archived') }}" class="btn btn-outline-secondary {% if current_status == 'archived' %}active{% endif %}">Archived</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if products %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Seller</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if product.image_url %}
+                                            <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                            {% else %}
+                                            <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">{{ product.name }}</h6>
+                                                <small class="text-muted">{{ product.category }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ product.seller.first_name }} {{ product.seller.last_name }}</td>
+                                    <td>{{ product.price|currency }}</td>
+                                    <td>{{ product.stock_quantity }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if product.status == 'active' %}success{% elif product.status == 'inactive' %}warning{% else %}secondary{% endif %}">
+                                            {{ product.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ product.created_at|ph_date('%m/%d/%Y') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-box fa-3x text-muted mb-3"></i>
+                        <h5>No products found</h5>
+                        <p class="text-muted">
+                            {% if current_search %}
+                            No products match your search criteria.
+                            {% elif current_status != 'all' %}
+                            No products with status "{{ current_status.title() }}".
+                            {% else %}
+                            No products in the system yet.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

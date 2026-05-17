@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Buyer Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('buyer.dashboard') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('buyer.orders') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-shopping-bag me-2"></i>My Orders
+                        </a>
+                        <a href="{{ url_for('buyer.wishlist') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-heart me-2"></i>Wishlist
+                        </a>
+                        <a href="{{ url_for('buyer.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                        <a href="{{ url_for('buyer.profile') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i>Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-shopping-bag me-2"></i>My Orders</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Status Filter Tabs -->
+                    <ul class="nav nav-tabs mb-4">
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'all' %}active{% endif %}" href="{{ url_for('buyer.orders') }}">All</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'pending' %}active{% endif %}" href="{{ url_for('buyer.orders', status='pending') }}">To Pay</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'preparing' %}active{% endif %}" href="{{ url_for('buyer.orders', status='preparing') }}">To Ship</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'shipped' %}active{% endif %}" href="{{ url_for('buyer.orders', status='shipped') }}">To Receive</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'delivered' %}active{% endif %}" href="{{ url_for('buyer.orders', status='delivered') }}">Delivered</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'cancelled' %}active{% endif %}" href="{{ url_for('buyer.orders', status='cancelled') }}">Cancelled</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if current_status == 'refunded' %}active{% endif %}" href="{{ url_for('buyer.orders', status='refunded') }}">Refunds</a>
+                        </li>
+                    </ul>
+                    
+                    {% if orders %}
+                    <div class="row">
+                        {% for order in orders %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="card-title">{{ order.order_number }}</h6>
+                                            <small class="text-muted">{{ order.created_at|datetime('%B %d, %Y at %I:%M %p') }}</small>
+                                        </div>
+                                        {% set ost = order|order_status %}
+                                        <span class="badge bg-{% if ost == 'delivered' %}success{% elif ost == 'cancelled' %}danger{% elif ost == 'refunded' %}secondary{% elif ost == 'pending' %}warning{% else %}info{% endif %}">
+                                            {{ order|order_status_label }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <strong>Total: {{ order.total_amount|currency }}</strong>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6>Items:</h6>
+                                        {% for item in order.items %}
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span>{{ item.product.name }} x{{ item.quantity }}</span>
+                                            <span>{{ (item.price * item.quantity)|currency }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('buyer.order_detail', order_id=order.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
+                                            View Details
+                                        </a>
+                                        {% if order.status in ['pending', 'confirmed'] %}
+                                        <form method="POST" action="{{ url_for('buyer.cancel_order', order_id=order.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                        {% elif ost == 'delivered' %}
+                                        <form method="POST" action="{{ url_for('buyer.request_refund', order_id=order.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('Are you sure you want to request a refund for this order?')">
+                                                Request Refund
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <h5>No orders found</h5>
+                        <p class="text-muted">
+                            {% if current_status == 'all' %}
+                            You haven't placed any orders yet.
+                            {% else %}
+                            No orders with status "{{ current_status.title() }}".
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('main.products') }}" class="btn btn-success">Start Shopping</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

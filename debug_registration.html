@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Registration Button Debug Tool</h1>
+    
+    <div class="debug-info">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Open the registration page: <a href="http://127.0.0.1:5000/register" target="_blank">http://127.0.0.1:5000/register</a></li>
+            <li>Open browser Developer Tools (F12)</li>
+            <li>Go to the Console tab</li>
+            <li>Fill out the registration form</li>
+            <li>Click the Register button</li>
+            <li>Check the console for messages</li>
+        </ol>
+    </div>
+
+    <div class="debug-info">
+        <h3>Expected Console Messages:</h3>
+        <ul>
+            <li>"Register button click handler added"</li>
+            <li>"Register button clicked!" (when you click the button)</li>
+            <li>"Submitting form..." (when form submits)</li>
+        </ul>
+    </div>
+
+    <div class="debug-info">
+        <h3>Test Button Functionality:</h3>
+        <button onclick="testButtonClick()">Test Button Click</button>
+        <div id="testResult"></div>
+    </div>
+
+    <div class="debug-info">
+        <h3>Manual Tests:</h3>
+        <button onclick="testBuyerRegistration()">Test Buyer Registration</button>
+        <button onclick="testSellerRegistration()">Test Seller Registration</button>
+        <button onclick="testRiderRegistration()">Test Rider Registration</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        function testButtonClick() {
+            const result = document.getElementById('testResult');
+            result.innerHTML = '<div class="success">Button click test passed! JavaScript is working.</div>';
+        }
+
+        async function testBuyerRegistration() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<div>Testing buyer registration...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'first_name': 'TestBuyer',
+                        'last_name': 'User',
+                        'email': 'testbuyer@example.com',
+                        'contact_number': '1234567890',
+                        'password': 'TestPass123!',
+                        'confirm_password': 'TestPass123!',
+                        'user_type': 'buyer',
+                        'address_region': 'NCR',
+                        'address_province': 'Metro Manila',
+                        'address_city': 'Quezon City',
+                        'address_barangay': 'Diliman',
+                        'address_street': '123 Test Street',
+                        'terms_accepted': 'on'
+                    })
+                });
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="success">✅ Buyer registration test passed!</div>';
+                } else {
+                    results.innerHTML += '<div class="error">❌ Buyer registration test failed</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="error">❌ Buyer registration test error: ' + error.message + '</div>';
+            }
+        }
+
+        async function testSellerRegistration() {
+            const results = document.getElementById('testResults');
+            results.innerHTML += '<div>Testing seller registration...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'first_name': 'TestSeller',
+                        'last_name': 'User',
+                        'email': 'testseller@example.com',
+                        'contact_number': '1234567891',
+                        'password': 'TestPass123!',
+                        'confirm_password': 'TestPass123!',
+                        'user_type': 'seller',
+                        'product_categories': 'Fitness Equipment',
+                        'address_region': 'NCR',
+                        'address_province': 'Metro Manila',
+                        'address_city': 'Quezon City',
+                        'address_barangay': 'Diliman',
+                        'address_street': '123 Test Street',
+                        'terms_accepted': 'on'
+                    })
+                });
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="success">✅ Seller registration test passed!</div>';
+                } else {
+                    results.innerHTML += '<div class="error">❌ Seller registration test failed</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="error">❌ Seller registration test error: ' + error.message + '</div>';
+            }
+        }
+
+        async function testRiderRegistration() {
+            const results = document.getElementById('testResults');
+            results.innerHTML += '<div>Testing rider registration...</div>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'first_name': 'TestRider',
+                        'last_name': 'User',
+                        'email': 'testrider@example.com',
+                        'contact_number': '1234567892',
+                        'password': 'TestPass123!',
+                        'confirm_password': 'TestPass123!',
+                        'user_type': 'rider',
+                        'vehicle_type': 'Motorcycle',
+                        'vehicle_plate': 'ABC123',
+                        'address_region': 'NCR',
+                        'address_province': 'Metro Manila',
+                        'address_city': 'Quezon City',
+                        'address_barangay': 'Diliman',
+                        'address_street': '123 Test Street',
+                        'terms_accepted': 'on'
+                    })
+                });
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="success">✅ Rider registration test passed!</div>';
+                } else {
+                    results.innerHTML += '<div class="error">❌ Rider registration test failed</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="error">❌ Rider registration test error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

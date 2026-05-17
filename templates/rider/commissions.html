@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Commissions - Sports and Outdoors Ecommerce System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {% include 'includes/dashboard_sidebar.html' %}
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-dollar-sign me-2"></i>Commissions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('rider.commissions', period='day') }}" class="btn btn-outline-secondary {% if period == 'day' %}active{% endif %}" data-period="day">Day</a>
+                                <a href="{{ url_for('rider.commissions', period='week') }}" class="btn btn-outline-secondary {% if period == 'week' %}active{% endif %}" data-period="week">Week</a>
+                                <a href="{{ url_for('rider.commissions', period='month') }}" class="btn btn-outline-secondary {% if period == 'month' %}active{% endif %}" data-period="month">Month</a>
+                                <a href="{{ url_for('rider.commissions', period='year') }}" class="btn btn-outline-secondary {% if period == 'year' %}active{% endif %}" data-period="year">Year</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <a class="btn btn-success" href="{{ url_for('rider.commissions_pdf', period=period) }}">
+                                <i class="fas fa-file-pdf me-2"></i>Generate PDF Report
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-1">Total Rider Commission</h6>
+                                    <h4 class="mb-0 text-success" id="totalCommission">{{ (total_commission or 0)|currency }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Commission Analytics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="commissionChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Completed Deliveries</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="deliveriesChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if commissions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Customer</th>
+                                    <th>Commission Amount</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for commission in commissions %}
+                                <tr>
+                                    <td>{{ commission.order.order_number }}</td>
+                                    <td>{{ commission.order.buyer.first_name }} {{ commission.order.buyer.last_name }}</td>
+                                    <td class="text-success">{{ commission.rider_commission|currency }}</td>
+                                    <td>{{ commission.created_at|ph_date('%B %d, %Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-success">Completed</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-dollar-sign fa-3x text-muted mb-3"></i>
+                        <h5>No commissions yet</h5>
+                        <p class="text-muted">Your commission earnings will appear here once you complete deliveries.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const currentPeriod = '{{ period }}';
+const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+const deliveriesCtx = document.getElementById('deliveriesChart').getContext('2d');
+
+const commissionChart = new Chart(commissionCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for data in commission_data %}'{{ data.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Rider Commission',
+            data: [{% for data in commission_data %}{{ data.commission|default(0) }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(40, 167, 69)',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+const deliveriesChart = new Chart(deliveriesCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for data in deliveries_data %}'{{ data.date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Delivered Orders',
+            data: [{% for data in deliveries_data %}{{ data.deliveries|default(0) }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(23, 162, 184, 0.8)',
+            borderColor: 'rgb(23, 162, 184)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 0
+                }
+            }
+        }
+    }
+});
+
+async function refreshCommissionAnalytics() {
+    try {
+        const response = await fetch(`{{ url_for('rider.commissions_data') }}?period=${currentPeriod}`, {
+            cache: 'no-store'
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+
+        commissionChart.data.labels = payload.commission_data.map(d => d.date);
+        commissionChart.data.datasets[0].data = payload.commission_data.map(d => d.commission);
+        commissionChart.update('none');
+
+        deliveriesChart.data.labels = payload.deliveries_data.map(d => d.date);
+        deliveriesChart.data.datasets[0].data = payload.deliveries_data.map(d => d.deliveries);
+        deliveriesChart.update('none');
+
+        document.getElementById('totalCommission').textContent = formatPeso(Number(payload.total_commission));
+    } catch (err) {
+        console.error('Failed to refresh rider commission analytics:', err);
+    }
+}
+
+// Keep analytics synchronized with system updates.
+setInterval(refreshCommissionAnalytics, 10000);
+</script>
+{% endblock %}

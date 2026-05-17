@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Create Advertisement - Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3">
+            {% include 'includes/dashboard_sidebar.html' %}
+        </div>
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-plus me-2"></i>Create Advertisement</h2>
+                <a href="{{ url_for('seller_ad.list_advertisements') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Advertisements
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product_id" class="form-label">Product to Advertise *</label>
+                                    <select class="form-select" id="product_id" name="product_id" required>
+                                        <option value="">Select a product</option>
+                                        {% for product in products %}
+                                        <option value="{{ product.id }}" data-price="{{ product.price }}">
+                                            {{ product.name }} - {{ product.price|currency }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Advertisement Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                           placeholder="e.g., Summer Sale - 20% Off All Tents">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description *</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" required
+                                              placeholder="Describe your promotion..."></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="promo_message" class="form-label">Promo Message</label>
+                                    <textarea class="form-control" id="promo_message" name="promo_message" rows="2"
+                                              placeholder="e.g., Limited time offer! Don't miss out!"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="discount_percentage" class="form-label">Discount Percentage *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                               min="1" max="99" required onchange="calculateDiscount()">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">Enter discount percentage (1-99%)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Price Preview</label>
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <div class="row text-center">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Original Price</small>
+                                                    <div class="h6 text-decoration-line-through" id="originalPrice">₱0.00</div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">Discounted Price</small>
+                                                    <div class="h5 text-success" id="discountedPrice">₱0.00</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-center mt-2">
+                                                <span class="badge bg-danger" id="discountBadge" style="display: none;">0% OFF</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="starts_at" class="form-label">Start Date & Time *</label>
+                                    <input type="datetime-local" class="form-control" id="starts_at" name="starts_at" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="expires_at" class="form-label">Expiration Date & Time *</label>
+                                    <input type="datetime-local" class="form-control" id="expires_at" name="expires_at" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="advertisement_image" class="form-label">Advertisement Image</label>
+                                    <input type="file" class="form-control" id="advertisement_image" name="advertisement_image" 
+                                           accept="image/*">
+                                    <div class="form-text">Upload a banner image for your advertisement (optional)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important:</strong> Your advertisement will be reviewed by admin before going live. 
+                            Make sure all information is accurate and follows our advertising guidelines.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Create Advertisement
+                            </button>
+                            <a href="{{ url_for('seller_ad.list_advertisements') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calculateDiscount() {
+    const productSelect = document.getElementById('product_id');
+    const discountInput = document.getElementById('discount_percentage');
+    const originalPriceEl = document.getElementById('originalPrice');
+    const discountedPriceEl = document.getElementById('discountedPrice');
+    const discountBadge = document.getElementById('discountBadge');
+    
+    if (productSelect.value && discountInput.value) {
+        const originalPrice = parseFloat(productSelect.selectedOptions[0].dataset.price);
+        const discountPercentage = parseFloat(discountInput.value);
+        
+        if (originalPrice && discountPercentage) {
+            const discountedPrice = originalPrice * (1 - discountPercentage / 100);
+            
+            originalPriceEl.textContent = formatPeso(originalPrice);
+            discountedPriceEl.textContent = formatPeso(discountedPrice);
+            discountBadge.textContent = discountPercentage + '% OFF';
+            discountBadge.style.display = 'inline-block';
+        }
+    } else {
+        originalPriceEl.textContent = '₱0.00';
+        discountedPriceEl.textContent = '₱0.00';
+        discountBadge.style.display = 'none';
+    }
+}
+
+// Set default start time to now (Philippine time)
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+    const formatDateTime = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+    
+    // Set start time to current Philippine time
+    document.getElementById('starts_at').value = formatDateTime(now);
+    
+    // Set default end time to 7 days from now
+    const endTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    document.getElementById('expires_at').value = formatDateTime(endTime);
+    
+    // Add event listeners
+    document.getElementById('product_id').addEventListener('change', calculateDiscount);
+    document.getElementById('discount_percentage').addEventListener('input', calculateDiscount);
+});
+</script>
+{% endblock %}
