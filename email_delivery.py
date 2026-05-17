@@ -274,7 +274,7 @@ def otp_email_html(
         "<div style='background:#f8f9fa;padding:30px;border-radius:0 0 10px 10px;'>"
         f"<h2 style='color:#333;'>{heading}</h2><p>{body}</p>"
         "<div style='text-align:center;margin:24px 0;background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;'>"
-        f"<div style='font-size:32px;letter-spacing:8px;font-weight:bold;color:{accent};'>{otp_code}</motion>"
+        f"<div style='font-size:32px;letter-spacing:8px;font-weight:bold;color:{accent};'>{otp_code}</div>"
         "</div>"
         f"<p style='color:#666;font-size:14px;'><a href='{action_link}'>{action_link}</a></p>"
         "<p style='color:#666;font-size:14px;'><strong>Expires in 10 minutes.</strong></p>"
