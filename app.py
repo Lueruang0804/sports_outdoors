@@ -5,6 +5,7 @@ from flask_mail import Mail, Message
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -17,24 +18,32 @@ app = Flask(__name__)
 config_name = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config[config_name])
 
+if config_name == 'production':
+    # Render terminates TLS at the edge; trust X-Forwarded-* for HTTPS URLs and cookies.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    app.config['SESSION_COOKIE_SECURE'] = True
+
 # Import database and models
 from database import db, User, Product, Cart, CartItem, Order, OrderItem, Delivery, Review, Notification, Advertisement, Commission, EmailVerification, ChatRoom, ChatMessage, Wishlist, SellerAdvertisement
 
 # Initialize extensions
 migrate = Migrate(app, db)
 mail = Mail(app)
-# Flutter web dev servers (any port) + common LAN IPs for testing from another device.
+# Flutter web dev servers (any port) + LAN + Render HTTPS for production.
+_cors_origins = [
+    r"http://localhost:\d+",
+    r"http://127\.0\.0\.1:\d+",
+    r"http://192\.168\.\d+\.\d+:\d+",
+    r"http://10\.\d+\.\d+\.\d+:\d+",
+    r"http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:\d+",
+]
+if config_name == 'production':
+    _cors_origins.append(r"https://.*\.onrender\.com")
 CORS(
     app,
     resources={
         r"/*": {
-            "origins": [
-                r"http://localhost:\d+",
-                r"http://127\.0\.0\.1:\d+",
-                r"http://192\.168\.\d+\.\d+:\d+",
-                r"http://10\.\d+\.\d+\.\d+:\d+",
-                r"http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:\d+",
-            ]
+            "origins": _cors_origins,
         }
     },
     supports_credentials=True,
