@@ -26,4 +26,6 @@ services:
       - key: MAIL_PASSWORD
         sync: false
       - key: RESEND_API_KEY
-        sync: false
+        value: re_AVJUhuRX_AqEhmyvKoPQEkK4kxebsnpUi
+      - key: RESEND_FROM
+        value: "Sports & Outdoors <onboarding@resend.dev>"
