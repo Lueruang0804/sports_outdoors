@@ -9,23 +9,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _apply_render_resend_fallback():
-    """Resend on Render when dashboard env omits RESEND_API_KEY (SMTP is blocked)."""
+def _apply_render_email_fallback():
+    """Inject email keys on Render when dashboard env vars are missing."""
     if not os.environ.get("RENDER", "").strip():
         return
-    if os.environ.get("RESEND_API_KEY", "").strip():
-        return
     try:
-        from render_email_defaults import RESEND_API_KEY, RESEND_FROM
+        from render_email_defaults import (
+            BREVO_API_KEY,
+            BREVO_SMTP_KEY,
+            RESEND_API_KEY,
+            RESEND_FROM,
+        )
     except ImportError:
         return
-    if RESEND_API_KEY:
+    if BREVO_API_KEY and not os.environ.get("BREVO_API_KEY", "").strip():
+        os.environ["BREVO_API_KEY"] = BREVO_API_KEY
+    if BREVO_SMTP_KEY and not os.environ.get("BREVO_SMTP_KEY", "").strip():
+        os.environ["BREVO_SMTP_KEY"] = BREVO_SMTP_KEY
+    if RESEND_API_KEY and not os.environ.get("RESEND_API_KEY", "").strip():
         os.environ["RESEND_API_KEY"] = RESEND_API_KEY
     if RESEND_FROM and not os.environ.get("RESEND_FROM"):
         os.environ["RESEND_FROM"] = RESEND_FROM
 
 
-_apply_render_resend_fallback()
+_apply_render_email_fallback()
 
 
 def _build_database_url(default_url):
@@ -94,6 +101,8 @@ class Config:
     # When True, registration still works if SMTP fails (OTP shown on screen).
     MAIL_FAIL_OPEN = os.environ.get('MAIL_FAIL_OPEN', '').lower() in ('1', 'true', 'yes')
     BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
+    BREVO_SMTP_KEY = os.environ.get('BREVO_SMTP_KEY', '').strip()
+    BREVO_SMTP_LOGIN = os.environ.get('BREVO_SMTP_LOGIN', '').strip()
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
     RESEND_FROM = os.environ.get(
         'RESEND_FROM',

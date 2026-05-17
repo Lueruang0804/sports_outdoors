@@ -49,6 +49,12 @@ $renderVars = [ordered]@{
 if ($local["BREVO_API_KEY"]) {
     $renderVars["BREVO_API_KEY"] = $local["BREVO_API_KEY"]
 }
+if ($local["BREVO_SMTP_KEY"]) {
+    $renderVars["BREVO_SMTP_KEY"] = $local["BREVO_SMTP_KEY"]
+}
+if ($local["BREVO_SMTP_LOGIN"]) {
+    $renderVars["BREVO_SMTP_LOGIN"] = $local["BREVO_SMTP_LOGIN"]
+}
 
 if ($local["RESEND_API_KEY"]) {
     $renderVars["RESEND_API_KEY"] = $local["RESEND_API_KEY"]

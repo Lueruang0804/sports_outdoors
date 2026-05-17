@@ -2,8 +2,8 @@
 Send OTP / transactional email.
 
 Order:
-- Local PC: Gmail SMTP (MAIL_* in .env), then Brevo API, then Resend API
-- Render: Brevo API first (any recipient after sender verify), then Resend, skip SMTP (blocked)
+- Local PC: Gmail SMTP, then Brevo API (xkeysib-), then Brevo SMTP (xsmtpsib-), then Resend
+- Render: Brevo API (xkeysib-) only, then Resend — SMTP ports are blocked
 """
 
 from __future__ import annotations
@@ -31,8 +31,25 @@ def smtp_configured(app) -> bool:
     return user not in ("", "your-email@gmail.com") and pwd not in ("", "your-app-password")
 
 
+def _brevo_api_key(app) -> str:
+    return (app.config.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY", "")).strip()
+
+
+def _brevo_smtp_key(app) -> str:
+    return (app.config.get("BREVO_SMTP_KEY") or os.environ.get("BREVO_SMTP_KEY", "")).strip()
+
+
+def brevo_api_configured(app) -> bool:
+    key = _brevo_api_key(app)
+    return key.startswith("xkeysib-")
+
+
+def brevo_smtp_configured(app) -> bool:
+    return _brevo_smtp_key(app).startswith("xsmtpsib-")
+
+
 def brevo_configured(app) -> bool:
-    return bool((app.config.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY", "")).strip())
+    return brevo_api_configured(app) or brevo_smtp_configured(app)
 
 
 def resend_configured(app) -> bool:
@@ -41,7 +58,7 @@ def resend_configured(app) -> bool:
 
 def email_ready(app) -> bool:
     if _on_render():
-        return brevo_configured(app) or resend_configured(app)
+        return brevo_api_configured(app) or resend_configured(app)
     return smtp_configured(app) or brevo_configured(app) or resend_configured(app)
 
 
@@ -49,15 +66,28 @@ def _mail_sender_email(app) -> str:
     return (app.config.get("MAIL_USERNAME") or os.environ.get("MAIL_USERNAME", "")).strip()
 
 
+def _brevo_smtp_login(app) -> str:
+    login = (
+        app.config.get("BREVO_SMTP_LOGIN")
+        or os.environ.get("BREVO_SMTP_LOGIN")
+        or _mail_sender_email(app)
+    ).strip()
+    return login
+
+
 def send_html_email(app, *, to_email: str, subject: str, html: str) -> bool:
-    """Deliver HTML email using the best available provider."""
     global last_send_error
     last_send_error = None
 
-    if brevo_configured(app):
-        if _send_via_brevo(app, to_email=to_email, subject=subject, html=html):
+    if brevo_api_configured(app):
+        if _send_via_brevo_api(app, to_email=to_email, subject=subject, html=html):
             return True
-        logger.warning("Brevo failed for %s; trying fallbacks.", to_email)
+        logger.warning("Brevo API failed for %s; trying fallbacks.", to_email)
+
+    if not _on_render() and brevo_smtp_configured(app):
+        if _send_via_brevo_smtp(app, to_email=to_email, subject=subject, html=html):
+            return True
+        logger.warning("Brevo SMTP failed for %s; trying fallbacks.", to_email)
 
     if not _on_render() and smtp_configured(app):
         if _send_via_gmail_smtp(app, to_email=to_email, subject=subject, html=html):
@@ -67,15 +97,19 @@ def send_html_email(app, *, to_email: str, subject: str, html: str) -> bool:
     if resend_configured(app):
         return _send_via_resend(app, to_email=to_email, subject=subject, html=html)
 
-    if _on_render() and smtp_configured(app):
-        logger.error("Render blocks Gmail SMTP. Set BREVO_API_KEY (recommended) or RESEND_API_KEY.")
+    if _on_render() and brevo_smtp_configured(app) and not brevo_api_configured(app):
+        last_send_error = (
+            "Brevo SMTP key (xsmtpsib-) cannot run on Render. "
+            "Create an API key (xkeysib-) at app.brevo.com → SMTP & API → API Keys."
+        )
+    elif _on_render() and smtp_configured(app):
+        logger.error("Render blocks Gmail SMTP. Set BREVO_API_KEY (xkeysib-) or RESEND_API_KEY.")
     return False
 
 
-def _send_via_brevo(app, *, to_email: str, subject: str, html: str) -> bool:
-    """Brevo HTTP API — works on Render; verify MAIL_USERNAME once in Brevo dashboard."""
+def _send_via_brevo_api(app, *, to_email: str, subject: str, html: str) -> bool:
     global last_send_error
-    api_key = (app.config.get("BREVO_API_KEY") or os.environ.get("BREVO_API_KEY", "")).strip()
+    api_key = _brevo_api_key(app)
     sender_email = _mail_sender_email(app)
     if not sender_email or "@" not in sender_email:
         last_send_error = "Set MAIL_USERNAME in .env to your verified Brevo sender email."
@@ -95,15 +129,46 @@ def _send_via_brevo(app, *, to_email: str, subject: str, html: str) -> bool:
             timeout=15,
         )
         if resp.status_code in (200, 201):
-            logger.info("Brevo email sent to %s from %s", to_email, sender_email)
+            logger.info("Brevo API email sent to %s from %s", to_email, sender_email)
             last_send_error = None
             return True
         last_send_error = resp.text[:500]
-        logger.error("Brevo failed (%s): %s", resp.status_code, last_send_error)
+        logger.error("Brevo API failed (%s): %s", resp.status_code, last_send_error)
         return False
     except requests.RequestException as exc:
         last_send_error = str(exc)
-        logger.exception("Brevo request error: %s", exc)
+        logger.exception("Brevo API request error: %s", exc)
+        return False
+
+
+def _send_via_brevo_smtp(app, *, to_email: str, subject: str, html: str) -> bool:
+    global last_send_error
+    smtp_key = _brevo_smtp_key(app)
+    login = _brevo_smtp_login(app)
+    sender = _mail_sender_email(app) or login
+    if not login or "@" not in login:
+        last_send_error = "Set BREVO_SMTP_LOGIN to your Brevo account email."
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Sports & Outdoors <{sender}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    try:
+        with smtplib.SMTP("smtp-relay.brevo.com", 587, timeout=15) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(login, smtp_key)
+            smtp.sendmail(sender, [to_email], msg.as_string())
+        logger.info("Brevo SMTP sent to %s (login %s)", to_email, login)
+        last_send_error = None
+        return True
+    except Exception as exc:
+        last_send_error = str(exc)
+        logger.error("Brevo SMTP failed for %s: %s", to_email, exc)
         return False
 
 
@@ -209,7 +274,7 @@ def otp_email_html(
         "<div style='background:#f8f9fa;padding:30px;border-radius:0 0 10px 10px;'>"
         f"<h2 style='color:#333;'>{heading}</h2><p>{body}</p>"
         "<div style='text-align:center;margin:24px 0;background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;'>"
-        f"<div style='font-size:32px;letter-spacing:8px;font-weight:bold;color:{accent};'>{otp_code}</div>"
+        f"<div style='font-size:32px;letter-spacing:8px;font-weight:bold;color:{accent};'>{otp_code}</motion>"
         "</div>"
         f"<p style='color:#666;font-size:14px;'><a href='{action_link}'>{action_link}</a></p>"
         "<p style='color:#666;font-size:14px;'><strong>Expires in 10 minutes.</strong></p>"

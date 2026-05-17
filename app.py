@@ -89,12 +89,21 @@ app.register_blueprint(admin_ad_bp)
 
 @app.route('/health')
 def health_check():
-    from email_delivery import brevo_configured, email_ready, resend_configured, smtp_configured
+    from email_delivery import (
+        brevo_api_configured,
+        brevo_configured,
+        brevo_smtp_configured,
+        email_ready,
+        resend_configured,
+        smtp_configured,
+    )
 
     on_render = bool(os.environ.get('RENDER', '').strip())
     return jsonify({
         'status': 'ok',
         'on_render': on_render,
+        'brevo_api_configured': brevo_api_configured(app),
+        'brevo_smtp_configured': brevo_smtp_configured(app),
         'brevo_configured': brevo_configured(app),
         'resend_configured': resend_configured(app),
         'smtp_configured': smtp_configured(app),

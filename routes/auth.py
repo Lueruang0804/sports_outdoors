@@ -30,16 +30,18 @@ def _mail_fail_open():
 
 def _email_send_failed_message():
     from app import app
-    from email_delivery import brevo_configured, email_ready, last_send_error
+    from email_delivery import brevo_api_configured, email_ready, last_send_error
 
     sender = (app.config.get('MAIL_USERNAME') or '').strip()
 
     if os.environ.get('RENDER', '').strip() and not email_ready(app):
         return (
-            'Email is not configured on Render. Add BREVO_API_KEY (recommended, free at brevo.com) '
-            'or RESEND_API_KEY, then redeploy. Gmail SMTP does not work on Render.'
+            'Email is not configured on Render. Add BREVO_API_KEY starting with xkeysib- '
+            '(Brevo → SMTP & API → API Keys), then redeploy. Gmail SMTP does not work on Render.'
         )
-    if not brevo_configured(app) and last_send_error and (
+    if last_send_error and 'xsmtpsib' in last_send_error.lower():
+        return last_send_error
+    if not brevo_api_configured(app) and last_send_error and (
         'verify a domain' in last_send_error.lower()
         or 'only send testing emails' in last_send_error.lower()
     ):
@@ -48,7 +50,7 @@ def _email_send_failed_message():
             f'verify {sender or "your Gmail"} as sender, add BREVO_API_KEY to Render Environment, '
             f'and redeploy — then OTP works for any email.'
         )
-    if brevo_configured(app) and last_send_error and 'not verified' in last_send_error.lower():
+    if brevo_api_configured(app) and last_send_error and 'not verified' in last_send_error.lower():
         return (
             f'Confirm sender {sender} in Brevo: Senders & IP → verify the email Brevo sent you, '
             f'then try again.'
