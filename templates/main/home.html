@@ -228,7 +228,7 @@
                                 <a href="{{ url_for('main.product_detail', product_id=product.id) }}" class="btn btn-outline-success flex-fill">View Details</a>
                                 {% if session.user_id and session.user_type == 'buyer' %}
                                 {% if product.stock_quantity > 0 %}
-                                <button class="btn btn-success" onclick="addToCart({{ product.id }})">
+                                <button type="button" class="btn btn-success btn-add-cart" data-product-id="{{ product.id }}">
                                     <i class="fas fa-cart-plus"></i>
                                 </button>
                                 {% else %}
@@ -249,50 +249,79 @@
         </div>
     </div>
 </section>
+
+<div id="home-page-config" class="d-none"
+     data-add-to-cart-url="{{ url_for('main.add_to_cart') }}"></div>
+{% if seller_ads %}
+<script type="application/json" id="seller-ad-expiry-data">
+[
+{% for ad in seller_ads %}
+{"id": {{ ad.id }}, "expires_at": "{{ ad.expires_at|iso_utc }}"}{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Countdown timers for advertisements
-{% if seller_ads %}
 document.addEventListener('DOMContentLoaded', function() {
-    {% for ad in seller_ads %}
-    (function() {
-        const countdownElement = document.getElementById('countdown-{{ ad.id }}');
-        const endTime = new Date('{{ ad.expires_at|iso_utc }}').getTime();
-        
-        function updateCountdown() {
-            const now = new Date().getTime();
-            const timeLeft = endTime - now;
-            
-            if (timeLeft > 0) {
-                const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                
-                if (days > 0) {
-                    countdownElement.textContent = `${days}d ${hours}h`;
-                } else if (hours > 0) {
-                    countdownElement.textContent = `${hours}h ${minutes}m`;
-                } else {
-                    countdownElement.textContent = `${minutes}m`;
-                }
-            } else {
-                countdownElement.textContent = 'Expired';
-                countdownElement.className = 'badge bg-danger';
-            }
+    const expiryEl = document.getElementById('seller-ad-expiry-data');
+    if (expiryEl) {
+        let ads = [];
+        try {
+            ads = JSON.parse(expiryEl.textContent);
+        } catch (e) {
+            console.error('Invalid seller ad expiry data', e);
         }
-        
-        updateCountdown();
-        setInterval(updateCountdown, 60000); // Update every minute
-    })();
-    {% endfor %}
-});
-{% endif %}
+        ads.forEach(function(ad) {
+            const countdownElement = document.getElementById('countdown-' + ad.id);
+            if (!countdownElement) return;
+            const endTime = new Date(ad.expires_at).getTime();
 
-// Add to cart function
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const timeLeft = endTime - now;
+
+                if (timeLeft > 0) {
+                    const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+                    if (days > 0) {
+                        countdownElement.textContent = days + 'd ' + hours + 'h';
+                    } else if (hours > 0) {
+                        countdownElement.textContent = hours + 'h ' + minutes + 'm';
+                    } else {
+                        countdownElement.textContent = minutes + 'm';
+                    }
+                } else {
+                    countdownElement.textContent = 'Expired';
+                    countdownElement.className = 'badge bg-danger';
+                }
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 60000);
+        });
+    }
+
+    document.querySelectorAll('.btn-add-cart').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const productId = parseInt(this.dataset.productId, 10);
+            if (!isNaN(productId)) {
+                addToCart(productId);
+            }
+        });
+    });
+});
+
 function addToCart(productId) {
-    fetch('{{ url_for("main.add_to_cart") }}', {
+    const configEl = document.getElementById('home-page-config');
+    const addToCartUrl = configEl ? configEl.dataset.addToCartUrl : '';
+    if (!addToCartUrl) return;
+
+    fetch(addToCartUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
