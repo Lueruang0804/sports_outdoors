@@ -15,7 +15,7 @@ from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
 from database import effective_order_status, delete_product_and_dependencies
 from category_utils import normalize_category
 from upload_storage import subdir_abs, db_relative_path
-from media_storage import save_product_image_file, save_product_image_bytes, resolve_product_image_url
+from media_storage import apply_product_image, resolve_product_image_url
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -474,32 +474,23 @@ def add_product():
             stock_quantity = max(0, stock_quantity)
             status = 'active'
 
-        image_url = None
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename:
-                image_url = save_product_image_file(file)
-                if image_url:
-                    print(f"SUCCESS: Image uploaded: {image_url}")
-                else:
-                    flash('Failed to upload image. A placeholder will be used if needed.', 'warning')
-
-        if not image_url:
-            image_url = _seller_placeholder_image(name)
-
         product = Product(
             name=name,
             description=description,
             price=price,
             category=category,
             stock_quantity=stock_quantity,
-            image_url=image_url,
             seller_id=user_id,
             status=status,
         )
-
         db.session.add(product)
+        upload_file = request.files.get('image')
+        if upload_file and upload_file.filename:
+            apply_product_image(product, file_storage=upload_file)
+        else:
+            apply_product_image(product)
         db.session.commit()
+        print(f"SUCCESS: Product image: {product.image_url}")
 
         if is_draft:
             flash('Draft saved. You can finish and publish it from My Products.', 'success')
@@ -525,12 +516,8 @@ def edit_product(product_id):
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
-                new_url = save_product_image_file(file)
-                if new_url:
-                    product.image_url = new_url
-                    print(f"SUCCESS: Image uploaded: {product.image_url}")
-                else:
-                    flash('Failed to upload image. Product updated without new image.', 'warning')
+                apply_product_image(product, file_storage=file)
+                print(f"SUCCESS: Image uploaded: {product.image_url}")
         
         db.session.commit()
         flash('Product updated successfully!', 'success')
@@ -1065,35 +1052,9 @@ def seller_products_api():
 
 
 def _seller_save_uploaded_image(file_storage):
-    """Returns Supabase public URL or uploads/products/... path."""
+    """Legacy helper — prefer apply_product_image on a Product row."""
+    from media_storage import save_product_image_file
     return save_product_image_file(file_storage)
-
-
-def _seller_placeholder_image(name):
-    """Placeholder when no image; stored in Supabase or local uploads."""
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-        img = Image.new('RGB', (300, 200), (240, 240, 240))
-        draw = ImageDraw.Draw(img)
-        try:
-            font = ImageFont.truetype("arial.ttf", 16)
-        except Exception:
-            font = ImageFont.load_default()
-        text = name[:25] + "..." if len(name) > 25 else name
-        try:
-            bbox = draw.textbbox((0, 0), text, font=font)
-            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        except Exception:
-            tw, th = len(text) * 10, 20
-        x = (300 - tw) // 2
-        y = 90
-        draw.text((x, y), text, fill=(100, 100, 100), font=font)
-        buf = io.BytesIO()
-        img.save(buf, format='JPEG', quality=85)
-        return save_product_image_bytes(buf.getvalue(), f'placeholder_{int(time.time())}.jpg')
-    except Exception as e:
-        print(f'ERROR: placeholder image: {e}')
-        return None
 
 
 def _seller_api_product_create(user_id):
@@ -1131,23 +1092,21 @@ def _seller_api_product_create(user_id):
         if price < 0 or stock_quantity < 0:
             return jsonify({'success': False, 'message': 'Price and stock must be zero or greater.'}), 400
 
-    image_url = None
-    if 'image' in request.files:
-        image_url = _seller_save_uploaded_image(request.files['image'])
-    if not image_url:
-        image_url = _seller_placeholder_image(name)
-
     product = Product(
         name=name,
         description=description,
         price=price,
         category=category,
         stock_quantity=stock_quantity,
-        image_url=image_url,
         seller_id=user_id,
         status=status,
     )
     db.session.add(product)
+    upload_file = request.files.get('image')
+    if upload_file and upload_file.filename:
+        apply_product_image(product, file_storage=upload_file)
+    else:
+        apply_product_image(product)
     db.session.commit()
     return jsonify({
         'success': True,
@@ -1224,9 +1183,7 @@ def seller_product_detail_api(product_id):
             product.status = st
 
     if 'image' in request.files and request.files['image'].filename:
-        new_url = _seller_save_uploaded_image(request.files['image'])
-        if new_url:
-            product.image_url = new_url
+        apply_product_image(product, file_storage=request.files['image'])
 
     db.session.commit()
     return jsonify({

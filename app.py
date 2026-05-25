@@ -60,7 +60,7 @@ app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
 db.init_app(app)
 
 from upload_storage import ensure_upload_dirs, uploads_on_render_disk
-from media_storage import resolve_product_image_url, storage_status, ensure_supabase_bucket
+from media_storage import resolve_product_image_url, storage_status, ensure_supabase_bucket, use_database_image_storage
 
 ensure_upload_dirs(app)
 if os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '').strip():
@@ -109,6 +109,7 @@ def health_check():
         'status': 'ok',
         'on_render': on_render,
         'product_image_storage': img_store.get('mode'),
+        'database_image_storage': img_store.get('database_image_storage'),
         'supabase_storage_configured': img_store.get('supabase_configured'),
         'uploads_persistent_disk': uploads_on_render_disk(),
         'upload_folder': app.config.get('UPLOAD_FOLDER'),
@@ -189,8 +190,36 @@ def ensure_delivered_order_status_synced():
             app.logger.warning('Could not repair delivered order statuses: %s', e)
 
 
+def ensure_product_image_columns():
+    """Add image_data / image_mimetype for DB-backed product photos."""
+    from sqlalchemy import inspect, text
+
+    with app.app_context():
+        try:
+            insp = inspect(db.engine)
+            cols = {c['name'] for c in insp.get_columns('product')}
+        except Exception:
+            return
+        dialect = db.engine.dialect.name
+        try:
+            with db.engine.begin() as conn:
+                if 'image_data' not in cols:
+                    if dialect == 'sqlite':
+                        conn.execute(text('ALTER TABLE product ADD COLUMN image_data BLOB'))
+                    else:
+                        conn.execute(text('ALTER TABLE product ADD COLUMN image_data BYTEA'))
+                if 'image_mimetype' not in cols:
+                    if dialect == 'sqlite':
+                        conn.execute(text('ALTER TABLE product ADD COLUMN image_mimetype VARCHAR(64)'))
+                    else:
+                        conn.execute(text('ALTER TABLE product ADD COLUMN image_mimetype VARCHAR(64) NULL'))
+        except Exception as e:
+            app.logger.warning('Could not add product image columns: %s', e)
+
+
 def run_startup_db_tasks():
     """Schema repair / sync — skip on Gunicorn production boot (Supabase already migrated)."""
+    ensure_product_image_columns()
     ensure_advertisement_promo_code_column()
     ensure_delivery_pod_columns()
     ensure_delivered_order_status_synced()
@@ -201,6 +230,11 @@ def _should_run_startup_db_tasks():
         return True
     return os.environ.get('RUN_STARTUP_DB', '').lower() in ('1', 'true', 'yes')
 
+
+try:
+    ensure_product_image_columns()
+except Exception:
+    pass
 
 if _should_run_startup_db_tasks():
     try:

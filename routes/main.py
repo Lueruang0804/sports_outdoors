@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, g, Response
 from database import (
     db,
     User,
@@ -131,6 +131,16 @@ def claim_admin_offer(ad_id):
     if getattr(ad, 'promo_code', None):
         flash(f'Promo code: {ad.promo_code}', 'success')
     return redirect(url_for('main.cart'))
+
+
+@main_bp.route('/product-media/<int:product_id>')
+def product_media(product_id):
+    """Serve product image bytes stored in PostgreSQL (Render-safe)."""
+    product = Product.query.get_or_404(product_id)
+    if not product.image_data:
+        return Response(status=404)
+    mimetype = product.image_mimetype or 'image/jpeg'
+    return Response(product.image_data, mimetype=mimetype)
 
 
 @main_bp.route('/products')

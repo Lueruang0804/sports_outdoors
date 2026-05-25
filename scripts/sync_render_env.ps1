@@ -56,6 +56,16 @@ if ($local["BREVO_SMTP_LOGIN"]) {
     $renderVars["BREVO_SMTP_LOGIN"] = $local["BREVO_SMTP_LOGIN"]
 }
 
+if ($local["SUPABASE_URL"]) {
+    $renderVars["SUPABASE_URL"] = $local["SUPABASE_URL"]
+}
+if ($local["SUPABASE_STORAGE_BUCKET"]) {
+    $renderVars["SUPABASE_STORAGE_BUCKET"] = $local["SUPABASE_STORAGE_BUCKET"]
+}
+if ($local["SUPABASE_SERVICE_ROLE_KEY"]) {
+    $renderVars["SUPABASE_SERVICE_ROLE_KEY"] = $local["SUPABASE_SERVICE_ROLE_KEY"]
+}
+
 if ($local["RESEND_API_KEY"]) {
     $renderVars["RESEND_API_KEY"] = $local["RESEND_API_KEY"]
     if ($local["RESEND_FROM"]) {

@@ -54,6 +54,9 @@ class Product(db.Model):
     category = db.Column(db.String(100), nullable=False)
     stock_quantity = db.Column(db.Integer, default=0)
     image_url = db.Column(db.String(255))
+    # Persisted in Postgres when Supabase Storage is not configured (survives Render redeploy)
+    image_data = db.Column(db.LargeBinary, nullable=True)
+    image_mimetype = db.Column(db.String(64), nullable=True)
     status = db.Column(
         db.Enum('active', 'inactive', 'archived', name='product_status_enum'),
         default='active'

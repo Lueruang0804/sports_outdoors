@@ -1,6 +1,8 @@
 # Product images (persistent on Render)
 
-Uploads are stored in **Supabase Storage** when configured (recommended). Files survive every git push / Render redeploy. Local disk is only a fallback for development.
+**Default on Render:** images are stored in **PostgreSQL** (`product.image_data`). They survive every deploy — no extra setup.
+
+**Optional:** Supabase Storage if you set `SUPABASE_SERVICE_ROLE_KEY` (overrides database storage).
 
 ## One-time setup (Supabase)
 
@@ -28,11 +30,11 @@ Redeploy after saving.
 Open: `https://sports-outdoors.onrender.com/health`
 
 ```json
-"product_image_storage": "supabase",
-"supabase_storage_configured": true
+"product_image_storage": "database",
+"database_image_storage": true
 ```
 
-If `supabase_storage_configured` is **false**, images still use local disk and **will be lost** on redeploy until you add the service role key.
+After deploy, **re-upload** product photos once (old disk files are gone). New uploads stay in the database.
 
 ## After setup
 
