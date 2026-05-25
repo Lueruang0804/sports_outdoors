@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
-from database import effective_order_status
+from database import effective_order_status, delete_product_and_dependencies
 from category_utils import normalize_category
 
 seller_bp = Blueprint('seller', __name__)
@@ -608,9 +608,13 @@ def delete_product(product_id):
     if has_orders:
         flash('Cannot delete product with existing orders. Archive it instead.', 'warning')
     else:
-        db.session.delete(product)
-        db.session.commit()
-        flash('Product deleted successfully!', 'success')
+        try:
+            delete_product_and_dependencies(product)
+            db.session.commit()
+            flash('Product deleted successfully!', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('Could not delete product. Please try again or archive it instead.', 'danger')
     
     return redirect(url_for('seller.products'))
 
@@ -1238,9 +1242,16 @@ def seller_product_detail_api(product_id):
                 'success': False,
                 'message': 'Cannot delete a product with orders. Archive it instead.',
             }), 400
-        db.session.delete(product)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Product deleted.'})
+        try:
+            delete_product_and_dependencies(product)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Product deleted.'})
+        except Exception:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': 'Could not delete product. Archive it instead.',
+            }), 500
 
     # PUT — multipart or JSON (read JSON body once)
     payload = {}

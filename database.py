@@ -423,6 +423,24 @@ def clear_seller_advertisement_fk_before_delete(advertisement_id):
         oi.advertisement_id = None
 
 
+def delete_product_and_dependencies(product):
+    """
+    Remove rows that reference product.id before deleting the product.
+    Order history is preserved by blocking delete when order_item rows exist.
+    Caller commits.
+    """
+    if not product or not product.id:
+        return
+    product_id = product.id
+    for ad in SellerAdvertisement.query.filter_by(product_id=product_id).all():
+        clear_seller_advertisement_fk_before_delete(ad.id)
+        db.session.delete(ad)
+    CartItem.query.filter_by(product_id=product_id).delete(synchronize_session=False)
+    Wishlist.query.filter_by(product_id=product_id).delete(synchronize_session=False)
+    Review.query.filter_by(product_id=product_id).delete(synchronize_session=False)
+    db.session.delete(product)
+
+
 class Delivery(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
