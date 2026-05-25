@@ -59,12 +59,9 @@ app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
 # Initialize database with app
 db.init_app(app)
 
-# Create upload directory if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'products'), exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'profiles'), exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'documents'), exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'pod'), exist_ok=True)
+from upload_storage import ensure_upload_dirs, uploads_on_render_disk
+
+ensure_upload_dirs(app)
 
 # Import routes
 from routes.auth import auth_bp
@@ -102,6 +99,8 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'on_render': on_render,
+        'uploads_persistent_disk': uploads_on_render_disk(),
+        'upload_folder': app.config.get('UPLOAD_FOLDER'),
         'brevo_api_configured': brevo_api_configured(app),
         'brevo_smtp_configured': brevo_smtp_configured(app),
         'brevo_configured': brevo_configured(app),

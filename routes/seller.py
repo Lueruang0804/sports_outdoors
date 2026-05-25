@@ -14,6 +14,7 @@ from reportlab.pdfgen import canvas
 from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
 from database import effective_order_status, delete_product_and_dependencies
 from category_utils import normalize_category
+from upload_storage import subdir_abs, db_relative_path
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -482,11 +483,10 @@ def add_product():
                     file_name, ext = os.path.splitext(filename)
                     unique_filename = f"{file_name}_{int(time.time())}{ext}"
 
-                    os.makedirs(os.path.join('static/uploads/products'), exist_ok=True)
-
-                    file_path = os.path.join('static/uploads/products', unique_filename)
+                    products_dir = subdir_abs('products')
+                    file_path = os.path.join(products_dir, unique_filename)
                     file.save(file_path)
-                    image_url = f"uploads/products/{unique_filename}"
+                    image_url = db_relative_path('products', unique_filename)
 
                     print(f"SUCCESS: Image uploaded: {image_url}")
                 except Exception as e:
@@ -521,9 +521,9 @@ def add_product():
                     draw.text((x, y), text, fill=(100, 100, 100))
 
                 placeholder_filename = f"placeholder_{int(time.time())}.jpg"
-                placeholder_path = os.path.join('static/uploads/products', placeholder_filename)
+                placeholder_path = os.path.join(subdir_abs('products'), placeholder_filename)
                 img.save(placeholder_path)
-                image_url = f"uploads/products/{placeholder_filename}"
+                image_url = db_relative_path('products', placeholder_filename)
 
                 print(f"SUCCESS: Created placeholder image: {image_url}")
             except Exception as e:
@@ -575,12 +575,10 @@ def edit_product(product_id):
                     unique_filename = f"{file_name}_{int(time.time())}{ext}"
                     
                     # Ensure directory exists
-                    os.makedirs(os.path.join('static/uploads/products'), exist_ok=True)
-                    
-                    # Save file
-                    file_path = os.path.join('static/uploads/products', unique_filename)
+                    products_dir = subdir_abs('products')
+                    file_path = os.path.join(products_dir, unique_filename)
                     file.save(file_path)
-                    product.image_url = f"uploads/products/{unique_filename}"
+                    product.image_url = db_relative_path('products', unique_filename)
                     
                     print(f"SUCCESS: Image uploaded: {product.image_url}")
                 except Exception as e:
@@ -1126,10 +1124,10 @@ def _seller_save_uploaded_image(file_storage):
         filename = secure_filename(file_storage.filename)
         file_name, ext = os.path.splitext(filename)
         unique_filename = f"{file_name}_{int(time.time())}{ext}"
-        os.makedirs(os.path.join('static/uploads/products'), exist_ok=True)
-        file_path = os.path.join('static/uploads/products', unique_filename)
+        products_dir = subdir_abs('products')
+        file_path = os.path.join(products_dir, unique_filename)
         file_storage.save(file_path)
-        return f"uploads/products/{unique_filename}"
+        return db_relative_path('products', unique_filename)
     except Exception as e:
         print(f"ERROR: product image upload: {e}")
         return None
@@ -1155,10 +1153,9 @@ def _seller_placeholder_image(name):
         y = 90
         draw.text((x, y), text, fill=(100, 100, 100), font=font)
         placeholder_filename = f"placeholder_{int(time.time())}.jpg"
-        placeholder_path = os.path.join('static/uploads/products', placeholder_filename)
-        os.makedirs(os.path.dirname(placeholder_path), exist_ok=True)
+        placeholder_path = os.path.join(subdir_abs('products'), placeholder_filename)
         img.save(placeholder_path)
-        return f"uploads/products/{placeholder_filename}"
+        return db_relative_path('products', placeholder_filename)
     except Exception as e:
         print(f"ERROR: placeholder image: {e}")
         return None

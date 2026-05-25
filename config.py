@@ -121,8 +121,9 @@ class Config:
         or 'http://localhost:5000'
     )
     
-    # File upload configuration
-    UPLOAD_FOLDER = 'static/uploads'
+    # File upload configuration (absolute path; survives Render redeploy when disk mounted)
+    _APP_ROOT = os.path.abspath(os.path.dirname(__file__))
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(_APP_ROOT, 'static', 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
     
