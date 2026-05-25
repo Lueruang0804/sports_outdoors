@@ -15,7 +15,7 @@ from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
 from database import effective_order_status, delete_product_and_dependencies
 from category_utils import normalize_category
 from upload_storage import subdir_abs, db_relative_path
-from media_storage import apply_product_image, resolve_product_image_url
+from media_storage import apply_product_image, external_product_image_url, resolve_product_image_url
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -272,7 +272,7 @@ def _get_sales_analytics_data(user_id, period):
         {
             'product_id': int(r.id),
             'name': r.name or '',
-            'image_url': r.image_url or '',
+            'image_url': external_product_image_url(r.image_url),
             'quantity_sold': int(r.qty or 0),
             'revenue': round(float(r.rev or 0), 2),
         }
@@ -852,7 +852,7 @@ def _order_to_seller_detail_json(user_id, order):
             'quantity': oi.quantity,
             'unit_price': float(oi.price),
             'line_total': round(float(oi.price) * oi.quantity, 2),
-            'image_url': p.image_url or '',
+            'image_url': external_product_image_url(p.image_url),
         })
     subtotal = round(sum(x['line_total'] for x in lines), 2)
     base['line_items'] = lines
@@ -991,7 +991,7 @@ def seller_order_update_status_api(order_id):
 
 
 def _product_to_seller_json(p):
-    img = resolve_product_image_url(p.image_url, external=True) if p.image_url else ''
+    img = external_product_image_url(p.image_url)
     return {
         'id': p.id,
         'name': p.name,

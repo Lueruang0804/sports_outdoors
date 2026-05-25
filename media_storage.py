@@ -231,6 +231,13 @@ def apply_product_image(product, file_storage=None, image_bytes: Optional[bytes]
     product.image_url = save_product_image_bytes(data, fname) or db_relative_path('products', _unique_filename(fname))
 
 
+def external_product_image_url(stored_value) -> str:
+    """Full https URL for mobile/API clients (product-media://, uploads/, etc.)."""
+    if not stored_value or not str(stored_value).strip():
+        return ''
+    return resolve_product_image_url(stored_value, external=True) or ''
+
+
 def resolve_product_image_url(stored_value, external: bool = False) -> str:
     if not stored_value or not str(stored_value).strip():
         return ''

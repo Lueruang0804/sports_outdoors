@@ -28,6 +28,7 @@ from database import (
 )
 from datetime import datetime
 from decimal import Decimal
+from media_storage import external_product_image_url
 from sqlalchemy import func
 from timezone_utils import (
     is_advertisement_visible,
@@ -247,7 +248,7 @@ def _seller_deal_dict(ad):
         'discounted_price': float(ad.discounted_price or 0),
         'product_id': ad.product_id,
         'product_name': p.name if p else '',
-        'product_image_url': (p.image_url or '') if p else '',
+        'product_image_url': external_product_image_url(p.image_url) if p else '',
     }
 
 
@@ -946,7 +947,7 @@ def _product_json_mobile(p):
         'price': float(p.price),
         'category': p.category,
         'stock_quantity': p.stock_quantity,
-        'image_url': p.image_url,
+        'image_url': external_product_image_url(p.image_url),
         'created_at': isoformat_utc_z(p.created_at) if p.created_at else None,
         'avg_rating': round(float(avg), 1) if avg else 0.0,
         'review_count': int(rc),

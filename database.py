@@ -291,6 +291,8 @@ def mobile_cart_snapshot_json(user_id):
     Does not run session reconcile — use right after mutating cart lines so mobile clients
     can refresh prices without relying on Set-Cookie round-trips.
     """
+    from media_storage import external_product_image_url
+
     cart = Cart.query.filter_by(user_id=user_id).first()
     if not cart:
         return {'items': [], 'total': 0.0, 'total_savings': 0.0}
@@ -310,7 +312,7 @@ def mobile_cart_snapshot_json(user_id):
             'product_id': item.product_id,
             'product_name': p.name,
             'category': p.category,
-            'image_url': p.image_url,
+            'image_url': external_product_image_url(p.image_url),
             'seller_id': p.seller_id,
             'shop_name': shop_name,
             'quantity': item.quantity,
