@@ -113,7 +113,7 @@ def health_check():
 
 @app.route('/favicon.ico')
 def favicon():
-    return redirect(url_for('static', filename='images/fitness-hero.jpg'))
+    return redirect(url_for('static', filename='images/favicon.png'))
 
 
 def ensure_advertisement_promo_code_column():
