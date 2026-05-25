@@ -90,7 +90,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             {% if product.image_url %}
-                                            <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                            <img src="{{ product.image_url | product_image_src }}" alt="{{ product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                                             {% else %}
                                             <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
                                                 <i class="fas fa-image text-muted"></i>

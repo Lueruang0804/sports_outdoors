@@ -14,7 +14,7 @@
                     <div class="row mb-4">
                         <div class="col-md-4">
                             {% if product.image_url %}
-                            <img src="{{ url_for('static', filename=product.image_url) }}" class="img-fluid rounded" alt="{{ product.name }}">
+                            <img src="{{ product.image_url | product_image_src }}" class="img-fluid rounded" alt="{{ product.name }}">
                             {% else %}
                             <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                 <i class="fas fa-image fa-3x text-muted"></i>

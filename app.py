@@ -60,8 +60,16 @@ app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
 db.init_app(app)
 
 from upload_storage import ensure_upload_dirs, uploads_on_render_disk
+from media_storage import resolve_product_image_url, storage_status, ensure_supabase_bucket
 
 ensure_upload_dirs(app)
+if os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '').strip():
+    ensure_supabase_bucket()
+
+
+@app.template_filter('product_image_src')
+def product_image_src_filter(stored_value):
+    return resolve_product_image_url(stored_value)
 
 # Import routes
 from routes.auth import auth_bp
@@ -96,9 +104,12 @@ def health_check():
     )
 
     on_render = bool(os.environ.get('RENDER', '').strip())
+    img_store = storage_status()
     return jsonify({
         'status': 'ok',
         'on_render': on_render,
+        'product_image_storage': img_store.get('mode'),
+        'supabase_storage_configured': img_store.get('supabase_configured'),
         'uploads_persistent_disk': uploads_on_render_disk(),
         'upload_folder': app.config.get('UPLOAD_FOLDER'),
         'brevo_api_configured': brevo_api_configured(app),

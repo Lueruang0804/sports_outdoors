@@ -169,7 +169,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             {% if item.product.image_url %}
-                                            <img src="{{ url_for('static', filename=item.product.image_url) }}" alt="{{ item.product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                            <img src="{{ item.product.image_url | product_image_src }}" alt="{{ item.product.name }}" class="me-3" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                                             {% else %}
                                             <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; border-radius: 4px;">
                                                 <i class="fas fa-image text-muted"></i>
@@ -202,7 +202,7 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center mb-3">
                                         {% if item.product.image_url %}
-                                        <img src="{{ url_for('static', filename=item.product.image_url) }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                        <img src="{{ item.product.image_url | product_image_src }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
                                         {% else %}
                                         <div class="me-3 bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 4px;">
                                             <i class="fas fa-image text-muted"></i>

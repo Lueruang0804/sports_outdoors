@@ -1,25 +1,45 @@
-# Product images on Render (persistent uploads)
+# Product images (persistent on Render)
 
-Uploads are stored under `static/uploads/` (products, profiles, etc.). Without persistent storage, **every deploy deletes uploaded photos** while the database still lists old paths.
+Uploads are stored in **Supabase Storage** when configured (recommended). Files survive every git push / Render redeploy. Local disk is only a fallback for development.
 
-## What we configured
+## One-time setup (Supabase)
 
-- `render.yaml` mounts a **1 GB persistent disk** at:
-  `/opt/render/project/src/static/uploads`
-- Code saves files via `upload_storage.py` using `UPLOAD_FOLDER` from config.
+You already use Supabase for `DATABASE_URL`. Add storage:
 
-## After deploy
+1. [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Storage**
+2. Create bucket **`product-images`** (or match `SUPABASE_STORAGE_BUCKET`)
+3. Set bucket to **Public**
+4. **Project Settings → API** → copy **`service_role`** key (secret)
 
-1. Open `https://sports-outdoors.onrender.com/health`
-2. Check `"uploads_persistent_disk": true` — disk is mounted correctly.
-3. If `false`, in Render Dashboard → your Web Service → **Disks** → add disk:
-   - Mount path: `/opt/render/project/src/static/uploads`
-   - Size: 1 GB (or more)
+## Render environment variables
 
-## Images lost before this fix
+In Render → **sports-outdoors** → **Environment**:
 
-Files removed by earlier deploys are **not recoverable** from git. Re-upload product photos once; new uploads will survive future commits/deploys.
+| Variable | Value |
+|----------|--------|
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (service_role secret) |
+| `SUPABASE_STORAGE_BUCKET` | `product-images` (optional, this is the default) |
+| `SUPABASE_URL` | Optional — auto-derived from `DATABASE_URL` if omitted |
+
+Redeploy after saving.
+
+## Verify
+
+Open: `https://sports-outdoors.onrender.com/health`
+
+```json
+"product_image_storage": "supabase",
+"supabase_storage_configured": true
+```
+
+If `supabase_storage_configured` is **false**, images still use local disk and **will be lost** on redeploy until you add the service role key.
+
+## After setup
+
+1. **Re-upload** product photos (old files on Render disk are gone).
+2. New uploads get a `https://....supabase.co/storage/...` URL in the database.
+3. Web and mobile both load that URL — no extra mobile config.
 
 ## Local development
 
-No disk needed. Files go to `ecommerce_system/static/uploads/` on your PC.
+Without `SUPABASE_SERVICE_ROLE_KEY`, files save to `static/uploads/products/` on your PC (normal dev behavior).

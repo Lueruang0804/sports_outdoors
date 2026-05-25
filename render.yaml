@@ -24,6 +24,10 @@ services:
         value: https://sports-outdoors.onrender.com
       - key: DATABASE_URL
         sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: product-images
       - key: SECRET_KEY
         sync: false
       - key: MAIL_USERNAME

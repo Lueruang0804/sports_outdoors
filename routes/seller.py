@@ -15,6 +15,7 @@ from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
 from database import effective_order_status, delete_product_and_dependencies
 from category_utils import normalize_category
 from upload_storage import subdir_abs, db_relative_path
+from media_storage import save_product_image_file, save_product_image_bytes, resolve_product_image_url
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -473,61 +474,18 @@ def add_product():
             stock_quantity = max(0, stock_quantity)
             status = 'active'
 
-        # Handle image upload
         image_url = None
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
-                try:
-                    filename = secure_filename(file.filename)
-                    file_name, ext = os.path.splitext(filename)
-                    unique_filename = f"{file_name}_{int(time.time())}{ext}"
-
-                    products_dir = subdir_abs('products')
-                    file_path = os.path.join(products_dir, unique_filename)
-                    file.save(file_path)
-                    image_url = db_relative_path('products', unique_filename)
-
+                image_url = save_product_image_file(file)
+                if image_url:
                     print(f"SUCCESS: Image uploaded: {image_url}")
-                except Exception as e:
-                    print(f"ERROR: Failed to upload image: {e}")
+                else:
                     flash('Failed to upload image. A placeholder will be used if needed.', 'warning')
 
         if not image_url:
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-
-                img = Image.new('RGB', (300, 200), (240, 240, 240))
-                draw = ImageDraw.Draw(img)
-
-                try:
-                    font = ImageFont.truetype("arial.ttf", 16)
-                except Exception:
-                    font = ImageFont.load_default()
-
-                text = name[:25] + "..." if len(name) > 25 else name
-                if font:
-                    bbox = draw.textbbox((0, 0), text, font=font)
-                    text_width = bbox[2] - bbox[0]
-                else:
-                    text_width = len(text) * 10
-
-                x = (300 - text_width) // 2
-                y = 90
-
-                if font:
-                    draw.text((x, y), text, fill=(100, 100, 100), font=font)
-                else:
-                    draw.text((x, y), text, fill=(100, 100, 100))
-
-                placeholder_filename = f"placeholder_{int(time.time())}.jpg"
-                placeholder_path = os.path.join(subdir_abs('products'), placeholder_filename)
-                img.save(placeholder_path)
-                image_url = db_relative_path('products', placeholder_filename)
-
-                print(f"SUCCESS: Created placeholder image: {image_url}")
-            except Exception as e:
-                print(f"ERROR: Failed to create placeholder image: {e}")
+            image_url = _seller_placeholder_image(name)
 
         product = Product(
             name=name,
@@ -564,25 +522,14 @@ def edit_product(product_id):
         product.category = normalize_category(request.form['category'])
         product.stock_quantity = int(request.form['stock_quantity'])
         
-        # Handle image upload
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
-                try:
-                    # Create unique filename
-                    filename = secure_filename(file.filename)
-                    file_name, ext = os.path.splitext(filename)
-                    unique_filename = f"{file_name}_{int(time.time())}{ext}"
-                    
-                    # Ensure directory exists
-                    products_dir = subdir_abs('products')
-                    file_path = os.path.join(products_dir, unique_filename)
-                    file.save(file_path)
-                    product.image_url = db_relative_path('products', unique_filename)
-                    
+                new_url = save_product_image_file(file)
+                if new_url:
+                    product.image_url = new_url
                     print(f"SUCCESS: Image uploaded: {product.image_url}")
-                except Exception as e:
-                    print(f"ERROR: Failed to upload image: {e}")
+                else:
                     flash('Failed to upload image. Product updated without new image.', 'warning')
         
         db.session.commit()
@@ -1057,6 +1004,7 @@ def seller_order_update_status_api(order_id):
 
 
 def _product_to_seller_json(p):
+    img = resolve_product_image_url(p.image_url, external=True) if p.image_url else ''
     return {
         'id': p.id,
         'name': p.name,
@@ -1065,7 +1013,7 @@ def _product_to_seller_json(p):
         'stock_quantity': p.stock_quantity,
         'status': p.status,
         'category': p.category,
-        'image_url': p.image_url or '',
+        'image_url': img or '',
     }
 
 
@@ -1117,24 +1065,12 @@ def seller_products_api():
 
 
 def _seller_save_uploaded_image(file_storage):
-    """Returns relative path uploads/products/... or None."""
-    if not file_storage or not file_storage.filename:
-        return None
-    try:
-        filename = secure_filename(file_storage.filename)
-        file_name, ext = os.path.splitext(filename)
-        unique_filename = f"{file_name}_{int(time.time())}{ext}"
-        products_dir = subdir_abs('products')
-        file_path = os.path.join(products_dir, unique_filename)
-        file_storage.save(file_path)
-        return db_relative_path('products', unique_filename)
-    except Exception as e:
-        print(f"ERROR: product image upload: {e}")
-        return None
+    """Returns Supabase public URL or uploads/products/... path."""
+    return save_product_image_file(file_storage)
 
 
 def _seller_placeholder_image(name):
-    """Same strategy as web add_product when no image."""
+    """Placeholder when no image; stored in Supabase or local uploads."""
     try:
         from PIL import Image, ImageDraw, ImageFont
         img = Image.new('RGB', (300, 200), (240, 240, 240))
@@ -1152,12 +1088,11 @@ def _seller_placeholder_image(name):
         x = (300 - tw) // 2
         y = 90
         draw.text((x, y), text, fill=(100, 100, 100), font=font)
-        placeholder_filename = f"placeholder_{int(time.time())}.jpg"
-        placeholder_path = os.path.join(subdir_abs('products'), placeholder_filename)
-        img.save(placeholder_path)
-        return db_relative_path('products', placeholder_filename)
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85)
+        return save_product_image_bytes(buf.getvalue(), f'placeholder_{int(time.time())}.jpg')
     except Exception as e:
-        print(f"ERROR: placeholder image: {e}")
+        print(f'ERROR: placeholder image: {e}')
         return None
 
 

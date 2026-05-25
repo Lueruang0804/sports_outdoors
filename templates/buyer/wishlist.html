@@ -45,7 +45,7 @@
                             <div class="card product-card h-100">
                                 {% if item.image_url %}
                                 {# image_url in DB is usually uploads/products/...; do not prefix uploads/ again #}
-                                <img src="{{ url_for('static', filename=(item.image_url if item.image_url.startswith('uploads/') else 'uploads/' ~ item.image_url)) }}" class="card-img-top" alt="{{ item.name }}" style="height: 200px; object-fit: cover;">
+                                <img src="{{ item.image_url | product_image_src }}" class="card-img-top" alt="{{ item.name }}" style="height: 200px; object-fit: cover;">
                                 {% else %}
                                 <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                     <i class="fas fa-image fa-3x text-muted"></i>

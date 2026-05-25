@@ -34,11 +34,15 @@ from category_utils import (
     normalize_category,
     category_slug,
 )
+from media_storage import resolve_product_image_url
 
 main_bp = Blueprint('main', __name__)
 
 
-def _product_to_dict(product):
+def _product_to_dict(product, external_image_url=False):
+    img = product.image_url
+    if img:
+        img = resolve_product_image_url(img, external=external_image_url) or img
     return {
         'id': product.id,
         'name': product.name,
@@ -46,7 +50,7 @@ def _product_to_dict(product):
         'price': float(product.price),
         'category': product.category,
         'stock_quantity': product.stock_quantity,
-        'image_url': product.image_url,
+        'image_url': img,
         'status': product.status,
         'seller_id': product.seller_id,
     }
@@ -54,7 +58,7 @@ def _product_to_dict(product):
 
 def _product_to_dict_for_mobile(product, avg_rating=0.0, review_count=0):
     """JSON for mobile list: includes ratings and timestamps (matches web product cards)."""
-    d = _product_to_dict(product)
+    d = _product_to_dict(product, external_image_url=True)
     d['created_at'] = isoformat_utc_z(product.created_at) if product.created_at else None
     d['avg_rating'] = round(float(avg_rating), 1) if avg_rating else 0.0
     d['review_count'] = int(review_count)
