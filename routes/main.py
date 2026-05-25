@@ -28,6 +28,12 @@ from timezone_utils import (
     isoformat_utc_z,
 )
 import json
+from category_utils import (
+    categories_for_template,
+    category_match_values,
+    normalize_category,
+    category_slug,
+)
 
 main_bp = Blueprint('main', __name__)
 
@@ -99,21 +105,11 @@ def home():
     )
     seller_ads = [a for a in candidates if is_advertisement_visible(a)['visible']][:15]
     
-    # Get product categories
-    categories = [
-        'Fitness Equipment',
-        'Camping & Hiking Gear', 
-        'Sports Apparel',
-        'Cycling & Bikes',
-        'Water Sports',
-        'Team Sports Equipment'
-    ]
-    
     return render_template('main/home.html', 
                          featured_products=featured_products,
                          advertisements=advertisements,
                          seller_ads=seller_ads,
-                         categories=categories)
+                         categories=categories_for_template())
 
 
 @main_bp.route('/admin-offer/<int:ad_id>/claim')
@@ -136,14 +132,16 @@ def claim_admin_offer(ad_id):
 @main_bp.route('/products')
 def products():
     page = request.args.get('page', 1, type=int)
-    category = request.args.get('category', '')
+    category = (request.args.get('category', '') or '').strip()
     search = (request.args.get('search', '') or '').strip()
     sort_by = request.args.get('sort', 'newest')
     
     query = Product.query.filter_by(status='active')
     
     if category:
-        query = query.filter(Product.category == category)
+        matched = category_match_values(category)
+        if matched:
+            query = query.filter(Product.category.in_(matched))
     
     if search:
         pattern = f'%{search}%'
@@ -165,19 +163,12 @@ def products():
     
     products = query.paginate(page=page, per_page=12, error_out=False)
     
-    categories = [
-        'Fitness Equipment',
-        'Camping & Hiking Gear', 
-        'Sports Apparel',
-        'Cycling & Bikes',
-        'Water Sports',
-        'Team Sports Equipment'
-    ]
+    current_category_slug = category_slug(normalize_category(category)) if category else ''
     
     return render_template('main/products.html', 
                          products=products,
-                         categories=categories,
-                         current_category=category,
+                         categories=categories_for_template(),
+                         current_category_slug=current_category_slug,
                          current_search=search,
                          current_sort=sort_by)
 
@@ -565,14 +556,9 @@ def mobile_products():
 
     query = Product.query.filter_by(status='active')
     if category:
-        category_aliases = {
-            'camping & hiking gear': ['Camping & Hiking Gear', 'Camping and Hiking Gear'],
-            'camping and hiking gear': ['Camping & Hiking Gear', 'Camping and Hiking Gear'],
-            'cycling & bikes': ['Cycling & Bikes', 'Cycling and Bikes'],
-            'cycling and bikes': ['Cycling & Bikes', 'Cycling and Bikes'],
-        }
-        matched_categories = category_aliases.get(category.lower(), [category])
-        query = query.filter(Product.category.in_(matched_categories))
+        matched_categories = category_match_values(category)
+        if matched_categories:
+            query = query.filter(Product.category.in_(matched_categories))
     if search:
         pattern = f'%{search}%'
         query = query.filter(or_(

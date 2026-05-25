@@ -18,6 +18,7 @@ from philippine_address_service import (
     get_provinces_for_region,
     get_regions_list,
 )
+from category_utils import normalize_category
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -513,6 +514,7 @@ def register():
                     product_categories = [raw]
             if not product_categories:
                 return render_register_error('Please select at least one product category.', 'cat_fitness_equipment')
+            product_categories = [normalize_category(c) for c in product_categories]
             
         # Handle file upload for business permit
         if user_type == 'seller':

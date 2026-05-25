@@ -13,13 +13,13 @@
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
-                        <a href="{{ url_for('main.products') }}" class="list-group-item list-group-item-action {% if not current_category %}active{% endif %}">
+                        <a href="{{ url_for('main.products') }}" class="list-group-item list-group-item-action {% if not current_category_slug %}active{% endif %}">
                             <i class="fas fa-th-large me-2"></i>All Categories
                         </a>
-                        {% for category in categories %}
-                        <a href="{{ url_for('main.products', category=category) }}" class="list-group-item list-group-item-action {% if current_category == category %}active{% endif %}">
-                            <i class="fas fa-{% if category == 'Fitness Equipment' %}dumbbell{% elif category == 'Camping & Hiking Gear' %}campground{% elif category == 'Sports Apparel' %}tshirt{% elif category == 'Cycling & Bikes' %}bicycle{% elif category == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} me-2"></i>
-                            {{ category }}
+                        {% for cat in categories %}
+                        <a href="{{ url_for('main.products', category=cat.slug) }}" class="list-group-item list-group-item-action {% if current_category_slug == cat.slug %}active{% endif %}">
+                            <i class="fas fa-{% if cat.name == 'Fitness Equipment' %}dumbbell{% elif cat.name == 'Camping & Hiking Gear' %}campground{% elif cat.name == 'Sports Apparel' %}tshirt{% elif cat.name == 'Cycling & Bikes' %}bicycle{% elif cat.name == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} me-2"></i>
+                            {{ cat.name }}
                         </a>
                         {% endfor %}
                     </div>
@@ -36,8 +36,8 @@
                         <div class="col-md-6">
                             <form method="GET" class="d-flex">
                                 <input type="text" name="search" class="form-control me-2" placeholder="Search products..." value="{{ current_search }}">
-                                {% if current_category %}
-                                <input type="hidden" name="category" value="{{ current_category }}">
+                                {% if current_category_slug %}
+                                <input type="hidden" name="category" value="{{ current_category_slug }}">
                                 {% endif %}
                                 <button type="submit" class="btn btn-success">
                                     <i class="fas fa-search"></i>
@@ -50,8 +50,8 @@
                                     {% if current_search %}
                                     <input type="hidden" name="search" value="{{ current_search }}">
                                     {% endif %}
-                                    {% if current_category %}
-                                    <input type="hidden" name="category" value="{{ current_category }}">
+                                    {% if current_category_slug %}
+                                    <input type="hidden" name="category" value="{{ current_category_slug }}">
                                     {% endif %}
                                     <select name="sort" class="form-select" onchange="this.form.submit()" style="width: auto;">
                                         <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest</option>
@@ -120,7 +120,7 @@
                 <ul class="pagination justify-content-center">
                     {% if products.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, category=current_category, search=current_search, sort=current_sort) }}">Previous</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.prev_num, category=current_category_slug, search=current_search, sort=current_sort) }}">Previous</a>
                     </li>
                     {% endif %}
                     
@@ -128,7 +128,7 @@
                         {% if page_num %}
                             {% if page_num != products.page %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('main.products', page=page_num, category=current_category, search=current_search, sort=current_sort) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('main.products', page=page_num, category=current_category_slug, search=current_search, sort=current_sort) }}">{{ page_num }}</a>
                             </li>
                             {% else %}
                             <li class="page-item active">
@@ -144,7 +144,7 @@
                     
                     {% if products.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, category=current_category, search=current_search, sort=current_sort) }}">Next</a>
+                        <a class="page-link" href="{{ url_for('main.products', page=products.next_num, category=current_category_slug, search=current_search, sort=current_sort) }}">Next</a>
                     </li>
                     {% endif %}
                 </ul>

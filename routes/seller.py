@@ -13,6 +13,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from timezone_utils import isoformat_utc_z, format_ph_datetime, get_ph_time
 from database import effective_order_status
+from category_utils import normalize_category
 
 seller_bp = Blueprint('seller', __name__)
 
@@ -29,10 +30,10 @@ def _seller_category_choices(user):
             cats = []
     if not cats:
         cats = [
-            'Fitness Equipment', 'Outdoor Gear', 'Team Sports', 'Water Sports',
-            'Cycling', 'Running', 'Apparel', 'Footwear', 'Other',
+            'Fitness Equipment', 'Camping & Hiking Gear', 'Outdoor Gear', 'Team Sports',
+            'Water Sports', 'Cycling', 'Running', 'Apparel', 'Footwear', 'Other',
         ]
-    return cats
+    return [normalize_category(c) for c in cats]
 
 
 def _allowed_seller_profile_image(filename):
@@ -439,7 +440,7 @@ def add_product():
 
         name = (request.form.get('name') or '').strip()
         description = (request.form.get('description') or '').strip()
-        category = (request.form.get('category') or '').strip()
+        category = normalize_category((request.form.get('category') or '').strip())
 
         try:
             price = float(request.form.get('price') or 0)
@@ -560,7 +561,7 @@ def edit_product(product_id):
         product.name = request.form['name']
         product.description = request.form['description']
         product.price = float(request.form['price'])
-        product.category = request.form['category']
+        product.category = normalize_category(request.form['category'])
         product.stock_quantity = int(request.form['stock_quantity'])
         
         # Handle image upload
@@ -1083,10 +1084,10 @@ def seller_categories_api():
     # Defaults when seller has no JSON list (matches typical onboarding)
     if not cats:
         cats = [
-            'Fitness Equipment', 'Outdoor Gear', 'Team Sports', 'Water Sports',
-            'Cycling', 'Running', 'Apparel', 'Footwear', 'Other',
+            'Fitness Equipment', 'Camping & Hiking Gear', 'Outdoor Gear', 'Team Sports',
+            'Water Sports', 'Cycling', 'Running', 'Apparel', 'Footwear', 'Other',
         ]
-    return jsonify({'success': True, 'categories': cats})
+    return jsonify({'success': True, 'categories': [normalize_category(c) for c in cats]})
 
 
 @seller_bp.route('/api/products', methods=['GET', 'POST'])
@@ -1162,7 +1163,7 @@ def _seller_placeholder_image(name):
 def _seller_api_product_create(user_id):
     name = (request.form.get('name') or '').strip()
     description = (request.form.get('description') or '').strip()
-    category = (request.form.get('category') or '').strip()
+    category = normalize_category((request.form.get('category') or '').strip())
     status = (request.form.get('status') or 'active').strip().lower()
     if status not in ('active', 'inactive', 'archived'):
         status = 'active'
@@ -1260,7 +1261,7 @@ def seller_product_detail_api(product_id):
         product.description = str(description).strip()
     category = _field('category')
     if category is not None and str(category).strip():
-        product.category = str(category).strip()
+        product.category = normalize_category(str(category).strip())
     price_raw = _field('price')
     if price_raw is not None:
         try:

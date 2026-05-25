@@ -182,13 +182,13 @@
     <div class="container">
         <h2 class="text-center mb-5">Shop by Category</h2>
         <div class="row">
-            {% for category in categories %}
+            {% for cat in categories %}
             <div class="col-md-4 col-lg-2 mb-4">
-                <a href="{{ url_for('main.products', category=category) }}" class="text-decoration-none">
+                <a href="{{ url_for('main.products', category=cat.slug) }}" class="text-decoration-none">
                     <div class="card border-0 shadow-sm h-100 text-center">
                         <div class="card-body">
-                            <i class="fas fa-{% if category == 'Fitness Equipment' %}dumbbell{% elif category == 'Camping & Hiking Gear' %}campground{% elif category == 'Sports Apparel' %}tshirt{% elif category == 'Cycling & Bikes' %}bicycle{% elif category == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} fa-3x text-success mb-3"></i>
-                            <h6 class="card-title">{{ category }}</h6>
+                            <i class="fas fa-{% if cat.name == 'Fitness Equipment' %}dumbbell{% elif cat.name == 'Camping & Hiking Gear' %}campground{% elif cat.name == 'Sports Apparel' %}tshirt{% elif cat.name == 'Cycling & Bikes' %}bicycle{% elif cat.name == 'Water Sports' %}swimmer{% else %}basketball-ball{% endif %} fa-3x text-success mb-3"></i>
+                            <h6 class="card-title">{{ cat.name }}</h6>
                         </div>
                     </div>
                 </a>
